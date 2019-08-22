@@ -1,8 +1,6 @@
-CCAinfMC
+function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
 % Monte Carlo evaluation of CCA inference
-% CCAinfMC
-%
-% Following varibles must be set in the workspace in order for this to run
+% CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
 %
 % N     - Number of subjects
 % Ny    - Number of variables in Y
@@ -14,6 +12,8 @@ CCAinfMC
 % HuhJhun
 %       - Use the Huh-Jhun method? (true/false)
 %
+% All arguments required.  Summary of results printed; nothing saved.
+%
 % An interecept is always used; Nz=1 means one nuisance variable (in
 % addition to the intercept).
 %
@@ -21,18 +21,11 @@ CCAinfMC
 % Anderson Winkler & Thomas Nichols
 % August 2019
 
-FreemanLane=false
-
-% Vars for later:
-ppararep = zeros(nR,1);  % Parametric p-value from CCA F-test
-ppermrep = zeros(nR,1);  % Permutation p-value based on F-test
-pcorrrep = zeros(nR,1);  % Permutation p-value based on r
-corrrep  = zeros(nR,1);  % First canonical correlation
-corrrep0m= zeros(nR,1);  % Mean of permuted first canonical correlation
+FreemanLane=false;
 
 % For each realization:
 for r = 1:nR
-    fprintf('%d\n',r)
+    fprintf('Realization %d\n',r)
     
     % Create some random data. Use rng for repeatability:
     rng('shuffle');
@@ -48,8 +41,8 @@ for r = 1:nR
         % [Q,S]  = svd(Rz);
         % S      = diag(S) < 10*eps;
         % Q(:,S) = [];
-
-	% Huh Juhn's / Anderson's version
+        
+        % Huh Juhn's / Anderson's version
         [Q,D]  = schur(Rz);
         D      = abs(diag(D)) < 10*eps;
         Q(:,D) = [];
@@ -58,13 +51,11 @@ for r = 1:nR
     end
     
     % Remove nuisance, possibly project, make sure nothing is rank deficient:
-    Y   = Q'*Rz*Y;
-    if ~isempty(Npca)
-      Y   = epca(Y,Npca);
-    end
-    X   = Q'*Rz*X;
-    if ~isempty(Npca)
-      X   = epca(X,Npca);
+    Y = Q'*Rz*Y;
+    X = Q'*Rz*X;
+    if ~ isempty(Npca)
+        Y = epca(Y,Npca);
+        X = epca(X,Npca);
     end
     
     % CCA:
@@ -73,28 +64,42 @@ for r = 1:nR
     % Permutation test:
     pperm = ones(size(R));
     pcorr = ones(size(R));
-    corrs = zeros(nP-1,1);
     for p = 1:(nP-1)
+        if r == 1 && p == 1
+            ppararep  = zeros(nR,length(R));  % Parametric p-value from CCA F-test
+            ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test
+            pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
+            corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
+            corrLast  = corrFirst;            % To store the CCs for the last permutation
+                                              % (any perm would do, the last is simpler as it
+                                              % it stays in the memory at the end of the
+                                              % permutation loop).
+        end
         if FreemanLane
-	  tmpX=X(randperm(size(X,1)),:);
-	  [~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
-	else
-	  [~,~,Rp,~,~,statsp] = canoncorr(Y,X(randperm(size(X,1)),:));
-	end
-        pperm = pperm + (statsp.pF <= stats.pF);
+            tmpX = X(randperm(size(X,1)),:);
+            [~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
+        else
+            [~,~,Rp,~,~,statsp] = canoncorr(Y,X(randperm(size(X,1)),:));
+        end
+        pperm = pperm + (statsp.F >= stats.F);
         pcorr = pcorr + (Rp >= R);
-	corrs(p) = Rp(1);
     end
     pperm = pperm/nP;
     pcorr = pcorr/nP;
-    ppararep(r) = statsp.pF(1);
-    ppermrep(r) = pperm(1);
-    pcorrrep(r) = pcorr(1);
-    corrrep(r)  = R(1);
-    corrrep0m(r)= mean(corrs);
+    ppararep (r,:) = stats.pF;
+    ppermrep (r,:) = pperm;
+    pcorrrep (r,:) = pcorr;
+    corrFirst(r,:) = R;
+    corrLast (r,:) = Rp;
 end
 
-fprintf('P,nPF,nPr,r,r0m: %g %g %g %g %g\n', ...
-	[ppararep ppermrep pcorrrep corrrep corrrep0m]')
-
-
+fprintf('Simulation parameters:\n')
+fprintf('N: %d, Ny: %d, Nx: %d, Nz: %d, Npca: %d, nR: %d, nP: %d, HJ: %d\n',...
+    N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun);
+alpha = 0.05;
+fprintf('Results:\n')
+fprintf('FPR (parametric):\n');      disp(mean(ppararep<=alpha));
+fprintf('FPR (permutation [F]):\n'); disp(mean(ppermrep<=alpha));
+fprintf('FPR (permutation [r]):\n'); disp(mean(pcorrrep<=alpha));
+fprintf('Mean CCs (unpermuted)\n');  disp(mean(corrFirst));
+fprintf('Mean CCs (random perm)\n'); disp(mean(corrLast));
