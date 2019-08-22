@@ -23,12 +23,20 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
 
 FreemanLane=false;
 
+fprintf('Simulation parameters: ')
+fprintf('N: %d, Ny: %d, Nx: %d, Nz: %d, Npca: %d, nR: %d, nP: %d, HJ: %d\n',...
+    N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun);
+
 % For each realization:
 for r = 1:nR
-    fprintf('Realization %d\n',r)
+    fprintf('Realization %d:\n',r)
     
     % Create some random data. Use rng for repeatability:
-    rng('shuffle');
+    if isoctave
+        rand('state','reset'); %#ok
+    else
+        rng('shuffle');
+    end
     Y = randn(N,Ny);
     X = randn(N,Nx);
     Z = [randn(N,Nz-1) ones(N,1)];
@@ -59,15 +67,15 @@ for r = 1:nR
     end
     
     % CCA:
-    [A,B,R,U,V,stats] = canoncorr(Y,X);
-    
+    %[A,B,R,U,V,stats] = canoncorr(Y,X);
+    [R,lW] = cca(Y,X);
+
     % Permutation test:
-    pperm = ones(size(R));
-    pcorr = ones(size(R));
+    pperm  = ones(size(R));
+    pcorr  = ones(size(R));
     for p = 1:(nP-1)
         if r == 1 && p == 1
-            ppararep  = zeros(nR,length(R));  % Parametric p-value from CCA F-test
-            ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test
+            ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test or Wilks'
             pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
             corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
             corrLast  = corrFirst;            % To store the CCs for the last permutation
@@ -77,35 +85,48 @@ for r = 1:nR
         end
         if FreemanLane
             tmpX = X(randperm(size(X,1)),:);
-            [~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
+            %[~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
+            [Rp,lWp] = cca(Y,tmpX-Z*(pZ*tmpX));
         else
-            [~,~,Rp,~,~,statsp] = canoncorr(Y,X(randperm(size(X,1)),:));
+            %[~,~,Rp,~,~,statsp] = canoncorr(Y,X(randperm(size(X,1)),:));
+            [Rp,lWp] = cca(Y,X(randperm(size(X,1)),:));
         end
-        pperm = pperm + (statsp.F >= stats.F);
-        pcorr = pcorr + (Rp >= R);
+        %pperm  = pperm  + (statsp.F >= stats.F);
+        pperm  = pperm  + (lWp >= lW);
+        pcorr  = pcorr  + (Rp  >= R);
     end
-    pperm = pperm/nP;
-    pcorr = pcorr/nP;
-    ppararep (r,:) = stats.pF;
+    pperm  = pperm/nP;
+    pcorr  = pcorr/nP;
     ppermrep (r,:) = pperm;
     pcorrrep (r,:) = pcorr;
     corrFirst(r,:) = R;
     corrLast (r,:) = Rp;
+    fprintf('- P-values (permutation [Wilks]):'); disp(pperm);
+    fprintf('- P-values (permutation [corr]):'); disp(pcorr);
+    fprintf('- CCs (not permuted):');  disp(R);
+    fprintf('- CCs (random perm):'); disp(Rp);
 end
 
-fprintf('Simulation parameters:\n')
-fprintf('N: %d, Ny: %d, Nx: %d, Nz: %d, Npca: %d, nR: %d, nP: %d, HJ: %d\n',...
-    N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun);
 alpha = 0.05;
-% fprintf('Results:\n')
-% fprintf('FPR (parametric):\n');      disp(mean(ppararep<=alpha));
-% fprintf('FPR (permutation [F]):\n'); disp(mean(ppermrep<=alpha));
-% fprintf('FPR (permutation [r]):\n'); disp(mean(pcorrrep<=alpha));
-% fprintf('Mean CCs (unpermuted)\n');  disp(mean(corrFirst));
-% fprintf('Mean CCs (random perm)\n'); disp(mean(corrLast));       
-fprintf('AWK(FPR-P,FPR-pF,FPR-pr,mr,mpr): %g %g %g %g %g\n',...
-	[ppararep(:,1),...
-	 ppermrep(:,1),...
-	 pcorrrep(:,1),...
-	 corrFirst(:,1),...
-	 corrLast(:,1)]');
+fprintf('Results:\n')
+fprintf('FPR (permutation [Wilks]):');  disp(mean(ppermrep <= alpha));
+fprintf('FPR (permutation [corr]):');  disp(mean(pcorrrep <= alpha));
+fprintf('Mean CCs (not permuted):');  disp(mean(corrFirst));
+fprintf('Mean CCs (random perm):'); disp(mean(corrLast));
+
+% =================================================================
+function [cc,lW] = cca(X,Y)
+[Qx,~,~] = qr(X,0);
+[Qy,~,~] = qr(Y,0);
+k  = min(size(X,2),size(Y,2));
+[~,D,~] = svd(Qx'*Qy,0);
+cc = min(max(diag(D(:,1:k))',0),1);
+lW = -fliplr(cumsum(fliplr(log(1-cc.^2))));
+
+% =================================================================
+function y = isoctave
+persistent isoct;
+if isempty(isoct),
+    isoct = exist('OCTAVE_VERSION','builtin') ~= 0;
+end
+y = isoct;
