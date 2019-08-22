@@ -45,11 +45,6 @@ for r = 1:nR
     pZ = pinv(Z);
     Rz = eye(N) - Z*pZ;
     if HuhJhun
-        % % Tom's version
-        % [Q,S]  = svd(Rz);
-        % S      = diag(S) < 10*eps;
-        % Q(:,S) = [];
-        
         % Huh Juhn's / Anderson's version
         [Q,D]  = schur(Rz);
         D      = abs(diag(D)) < 10*eps;
@@ -67,15 +62,12 @@ for r = 1:nR
     end
     
     % CCA:
-    %[A,B,R,U,V,stats] = canoncorr(Y,X);
-    [R,lW] = cca(Y,X);
+    R = cca(Y,X);
 
     % Permutation test:
-    pperm  = ones(size(R));
     pcorr  = ones(size(R));
     for p = 1:(nP-1)
         if r == 1 && p == 1
-            ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test or Wilks'
             pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
             corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
             corrLast  = corrFirst;            % To store the CCs for the last permutation
@@ -85,23 +77,16 @@ for r = 1:nR
         end
         if FreemanLane
             tmpX = X(randperm(size(X,1)),:);
-            %[~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
-            [Rp,lWp] = cca(Y,tmpX-Z*(pZ*tmpX));
+            Rp = cca(Y,tmpX-Z*(pZ*tmpX));
         else
-            %[~,~,Rp,~,~,statsp] = canoncorr(Y,X(randperm(size(X,1)),:));
-            [Rp,lWp] = cca(Y,X(randperm(size(X,1)),:));
+            Rp = cca(Y,X(randperm(size(X,1)),:));
         end
-        %pperm  = pperm  + (statsp.F >= stats.F);
-        pperm  = pperm  + (lWp >= lW);
         pcorr  = pcorr  + (Rp  >= R);
     end
-    pperm  = pperm/nP;
     pcorr  = pcorr/nP;
-    ppermrep (r,:) = pperm;
     pcorrrep (r,:) = pcorr;
     corrFirst(r,:) = R;
     corrLast (r,:) = Rp;
-    fprintf('- P-values (permutation [Wilks]):'); disp(pperm);
     fprintf('- P-values (permutation [corr]):'); disp(pcorr);
     fprintf('- CCs (not permuted):');  disp(R);
     fprintf('- CCs (random perm):'); disp(Rp);
@@ -109,19 +94,22 @@ end
 
 alpha = 0.05;
 fprintf('Results:\n')
-fprintf('FPR (permutation [Wilks]):');  disp(mean(ppermrep <= alpha));
 fprintf('FPR (permutation [corr]):');  disp(mean(pcorrrep <= alpha));
 fprintf('Mean CCs (not permuted):');  disp(mean(corrFirst));
 fprintf('Mean CCs (random perm):'); disp(mean(corrLast));
 
+fprintf('AWK(FPR-P,FPR-pF,FPR-pr,mr,mpr): %g %g %g %g %g\n',...
+	[ppararep(:,1),...
+	 ppermrep(:,1),...
+	 pcorrrep(:,1),...
+	 corrFirst(:,1),...
+	 corrLast(:,1)]');
+
 % =================================================================
-function [cc,lW] = cca(X,Y)
+function cc = cca(X,Y)
 [Qx,~,~] = qr(X,0);
 [Qy,~,~] = qr(Y,0);
-k  = min(size(X,2),size(Y,2));
-[~,D,~] = svd(Qx'*Qy,0);
-cc = min(max(diag(D(:,1:k))',0),1);
-lW = -fliplr(cumsum(fliplr(log(1-cc.^2))));
+cc = svds(Qx'*Qy,1);
 
 % =================================================================
 function y = isoctave
