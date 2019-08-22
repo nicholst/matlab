@@ -39,6 +39,9 @@ nSet=${#Param[*]}
 #   -l h_vmem=8G      8G max mem
 #   -t 1:1000         1k jobs, 1 real. per job, 1k realisations... not sure how long 10k no less 100k would take
 #   nR=1              1 realisations per job
+#   -l h=exec1r420|exec2r420|exec3r420|exec4r420|exec5r420
+#                     reliably fast machines
+
 
 for ((i=0;i<nSet;i++)) ; do
     ScriptNm=${BaseNm}${Label[i]}
@@ -56,7 +59,8 @@ EOF
     else
 	cat >> $ScriptNm.sh <<EOF
 #$ -l h_vmem=8G
-#$ -t 1:10
+#$ -t 1:1000
+#$ -l h=exec1r420|exec2r420|exec3r420|exec4r420|exec5r420
 EOF
     fi
 
