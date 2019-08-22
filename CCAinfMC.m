@@ -102,4 +102,10 @@ fprintf('FPR (parametric):\n');      disp(mean(ppararep<=alpha));
 fprintf('FPR (permutation [F]):\n'); disp(mean(ppermrep<=alpha));
 fprintf('FPR (permutation [r]):\n'); disp(mean(pcorrrep<=alpha));
 fprintf('Mean CCs (unpermuted)\n');  disp(mean(corrFirst));
-fprintf('Mean CCs (random perm)\n'); disp(mean(corrLast));
+fprintf('Mean CCs (random perm)\n'); disp(mean(corrLast));       
+fprintf('AWK(FPR-P,FPR-pF,FPR-pr,mr,mpr): %g %g %g %g %g %g %g\n',...
+	[mean(ppararep<=alpha)
+	 mean(ppermrep<=alpha)
+	 mean(pcorrrep<=alpha)
+	 mean(corrFirst)
+	 mean(corrLast)]');
