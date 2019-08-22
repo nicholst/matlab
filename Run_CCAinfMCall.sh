@@ -1,27 +1,27 @@
 #!/bin/bash
 
 Label=(
-    "N00200_Nx0050_Ny0050_Npca030_Nz00_HJ0" 
-    "N00200_Nx0050_Ny0050_Npca030_Nz05_HJ0" 
-    "N00200_Nx0050_Ny0050_Npca030_Nz05_HJ1" 
-    "N01000_Nx0200_Ny0200_Npca050_Nz00_HJ0" 
-    "N01000_Nx0200_Ny0200_Npca050_Nz10_HJ0" 
-    "N01000_Nx0200_Ny0200_Npca050_Nz10_HJ1" 
-    "N10000_Nx2000_Ny2000_Npca200_Nz00_HJ0" 
-    "N10000_Nx2000_Ny2000_Npca200_Nz10_HJ0" 
-    "N10000_Nx2000_Ny2000_Npca200_Nz10_HJ1" 
+    "N00200_Ny0050_Nx0050_Nz00_Npca030_HJ0" 
+    "N00200_Ny0050_Nx0050_Nz05_Npca030_HJ0" 
+    "N00200_Ny0050_Nx0050_Nz05_Npca030_HJ1" 
+    "N01000_Ny0200_Nx0200_Nz00_Npca050_HJ0" 
+    "N01000_Ny0200_Nx0200_Nz10_Npca050_HJ0" 
+    "N01000_Ny0200_Nx0200_Nz10_Npca050_HJ1" 
+    "N10000_Ny2000_Nx2000_Nz00_Npca200_HJ0" 
+    "N10000_Ny2000_Nx2000_Nz10_Npca200_HJ0" 
+    "N10000_Ny2000_Nx2000_Nz10_Npca200_HJ1" 
 )
 
 Param=(
-    "N=200;   Nx=50;   Ny=50;   Npca=30;  Nz=0;   nR=10;  nP=1000; HJ=false" 
-    "N=200;   Nx=50;   Ny=50;   Npca=30;  Nz=5;   nR=10;  nP=1000; HJ=false"
-    "N=200;   Nx=50;   Ny=50;   Npca=30;  Nz=5;   nR=10;  nP=1000; HJ=true"
-    "N=1000;  Nx=200;  Ny=200;  Npca=50;  Nz=0;   nR=10;  nP=1000; HJ=false"
-    "N=1000;  Nx=200;  Ny=200;  Npca=50;  Nz=10;  nR=10;  nP=1000; HJ=false"
-    "N=1000;  Nx=200;  Ny=200;  Npca=50;  Nz=10;  nR=10;  nP=1000; HJ=true"
-    "N=10000; Nx=2000; Ny=2000; Npca=200; Nz=0;   nR=1;   nP=1000; HJ=false"
-    "N=10000; Nx=2000; Ny=2000; Npca=200; Nz=50;  nR=1;   nP=1000; HJ=false"
-    "N=10000; Nx=2000; Ny=2000; Npca=200; Nz=50;  nR=1;   nP=1000; HJ=true"
+    "N=200;   Ny=50;   Nx=50;   Nz=0;   Npca=30;  nR=10;  nP=1000; HJ=false" 
+    "N=200;   Ny=50;   Nx=50;   Nz=5;   Npca=30;  nR=10;  nP=1000; HJ=false"
+    "N=200;   Ny=50;   Nx=50;   Nz=5;   Npca=30;  nR=10;  nP=1000; HJ=true"
+    "N=1000;  Ny=200;  Nx=200;  Nz=0;   Npca=50;  nR=10;  nP=1000; HJ=false"
+    "N=1000;  Ny=200;  Nx=200;  Nz=10;  Npca=50;  nR=10;  nP=1000; HJ=false"
+    "N=1000;  Ny=200;  Nx=200;  Nz=10;  Npca=50;  nR=10;  nP=1000; HJ=true"
+    "N=10000; Ny=2000; Nx=2000; Nz=0;   Npca=200; nR=1;   nP=1000; HJ=false"
+    "N=10000; Ny=2000; Nx=2000; Nz=50;  Npca=200; nR=1;   nP=1000; HJ=false"
+    "N=10000; Ny=2000; Nx=2000; Nz=50;  Npca=200; nR=1;   nP=1000; HJ=true"
 )
 
 BaseNm=CCAinf-
@@ -66,7 +66,7 @@ EOF
 module add matlab
 
 matlab -nodisplay -nojvm -singleCompThread -r \
-  "try;${Param[i]};CCAinfMC;end;quit"
+  "try;${Param[i]};CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun);end;quit"
 
 EOF
 
