@@ -66,7 +66,7 @@ EOF
 module add matlab
 
 matlab -nodisplay -nojvm -singleCompThread -r \
-  "try;${Param[i]};CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun);end;quit"
+  "try;${Param[i]};CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HJ);end;quit"
 
 EOF
 
