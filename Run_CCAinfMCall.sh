@@ -70,6 +70,6 @@ matlab -nodisplay -nojvm -singleCompThread -r \
 
 EOF
 
-    echo qsub -N $ScriptNm $ScriptNm.sh
+    qsub -N $ScriptNm $ScriptNm.sh
 done
 
