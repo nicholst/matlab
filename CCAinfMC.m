@@ -97,15 +97,15 @@ fprintf('Simulation parameters:\n')
 fprintf('N: %d, Ny: %d, Nx: %d, Nz: %d, Npca: %d, nR: %d, nP: %d, HJ: %d\n',...
     N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun);
 alpha = 0.05;
-fprintf('Results:\n')
-fprintf('FPR (parametric):\n');      disp(mean(ppararep<=alpha));
-fprintf('FPR (permutation [F]):\n'); disp(mean(ppermrep<=alpha));
-fprintf('FPR (permutation [r]):\n'); disp(mean(pcorrrep<=alpha));
-fprintf('Mean CCs (unpermuted)\n');  disp(mean(corrFirst));
-fprintf('Mean CCs (random perm)\n'); disp(mean(corrLast));       
+% fprintf('Results:\n')
+% fprintf('FPR (parametric):\n');      disp(mean(ppararep<=alpha));
+% fprintf('FPR (permutation [F]):\n'); disp(mean(ppermrep<=alpha));
+% fprintf('FPR (permutation [r]):\n'); disp(mean(pcorrrep<=alpha));
+% fprintf('Mean CCs (unpermuted)\n');  disp(mean(corrFirst));
+% fprintf('Mean CCs (random perm)\n'); disp(mean(corrLast));       
 fprintf('AWK(FPR-P,FPR-pF,FPR-pr,mr,mpr): %g %g %g %g %g\n',...
-	[ppararep
-	 ppermrep
-	 pcorrrep
-	 corrFirst
+	[ppararep(:,1),...
+	 ppermrep(:,1),...
+	 pcorrrep(:,1),...
+	 corrFirst,...
 	 corrLast]');
