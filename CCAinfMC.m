@@ -37,15 +37,15 @@ for r = 1:nR
     pZ = pinv(Z);
     Rz = eye(N) - Z*pZ;
     if HuhJhun
-        % % Tom's version
-        % [Q,S]  = svd(Rz);
-        % S      = diag(S) < 10*eps;
-        % Q(:,S) = [];
+        % Tom's version
+        [Q,S]  = svd(Rz);
+        S      = diag(S) < sqrt(eps);
+        Q(:,S) = [];
         
-        % Huh Juhn's / Anderson's version
-        [Q,D]  = schur(Rz);
-        D      = abs(diag(D)) < 10*eps;
-        Q(:,D) = [];
+        % % Huh Juhn's / Anderson's version
+        % [Q,D]  = schur(Rz);
+        % D      = abs(diag(D)) < 10*eps;
+        % Q(:,D) = [];
     else
         Q = eye(N);
     end
