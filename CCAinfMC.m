@@ -65,7 +65,7 @@ for r = 1:nR
     % Remove nuisance, possibly project, make sure nothing is rank deficient:
     Y = H*Y;
     X = H*X;
-    if ~ isempty(Npca)
+    if ~isempty(Npca) && Npca>0
         Y = epca(Y,Npca);
         X = epca(X,Npca);
     end
@@ -160,4 +160,5 @@ end
 M    = eye(N) - X*inv(X'*X)*X';
 S    = eye(N);
 S    = S(I1,I);
-Q    = sqrtm(inv(S*M*S')) S*M;  
+Q    = sqrtm(inv(S*M*S'))*S*M;
+
