@@ -36,7 +36,7 @@ for r = 1:nR
     rng('shuffle');
     Y = randn(N,Ny);
     X = randn(N,Nx);
-    Z = [randn(N,Nz-1) ones(N,1)];
+    Z = [randn(N,Nz) ones(N,1)];
     
     % Residual forming matrix:
     pZ = pinv(Z);
