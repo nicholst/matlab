@@ -159,6 +159,6 @@ end
 % S and Q (A) are transposed relative to Magnus & Sinha
 M    = eye(N) - X*inv(X'*X)*X';
 S    = eye(N);
-S    = S(I1,I);
+S    = S(I1,:);
 Q    = sqrtm(inv(S*M*S'))*S*M;
 
