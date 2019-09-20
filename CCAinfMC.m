@@ -10,7 +10,12 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
 % nR    - Number of realizations
 % nP    - Number of permutations per realization
 % HuhJhun
-%       - Use the Huh-Jhun method? (true/false)
+%       - Use the Huh-Jhun method?
+%            0 - no
+%            1 - Shur
+%            2 - SVD
+%            3 - BLUS residuals
+% 
 %
 % All arguments required.  Summary of results printed; nothing saved.
 %
@@ -36,23 +41,30 @@ for r = 1:nR
     % Residual forming matrix:
     pZ = pinv(Z);
     Rz = eye(N) - Z*pZ;
-    if HuhJhun
-        % Tom's version
-        [Q,S]  = svd(Rz);
-        S      = diag(S) < sqrt(eps);
-        Q(:,S) = [];
-        
-        % % Huh Juhn's / Anderson's version
-        % [Q,D]  = schur(Rz);
-        % D      = abs(diag(D)) < 10*eps;
-        % Q(:,D) = [];
-    else
-        Q = eye(N);
+    switch HuhJhun
+     case 0
+      % None
+      H = Rz;
+     case 1
+      % Tom's version (SVD)
+      [Q,S]  = svd(Rz);
+      S      = diag(S) < sqrt(eps);
+      Q(:,S) = [];
+      H      = Q'*Rz;
+     case 2
+      % Huh Juhn's / Anderson's version (Schur)
+      [Q,D]  = schur(Rz);
+      D      = abs(diag(D)) < 10*eps;
+      Q(:,D) = [];
+      H      = Q'*Rz;
+     case 3
+      % BLUS residuals
+      H      = BLUSmtx(Z);
     end
     
     % Remove nuisance, possibly project, make sure nothing is rank deficient:
-    Y = Q'*Rz*Y;
-    X = Q'*Rz*X;
+    Y = H*Y;
+    X = H*X;
     if ~ isempty(Npca)
         Y = epca(Y,Npca);
         X = epca(X,Npca);
@@ -60,7 +72,7 @@ for r = 1:nR
     
     % CCA:
     [A,B,R,U,V,stats] = canoncorr(Y,X);
-    
+
     % Permutation test:
     pperm = ones(size(R));
     pcorr = ones(size(R));
@@ -123,3 +135,29 @@ if isempty(isoct),
     isoct = exist('OCTAVE_VERSION','builtin') ~= 0;
 end
 y = isoct;
+
+% =================================================================
+function Q = BLUSmtx(X)
+% Create (N-P) x N matrix that generates BLUS residuals
+
+N = size(X,1);
+P = size(X,2);
+
+% Find safe subset to drop
+Done=false;
+while (~Done)
+  I1 = randperm(N,N-P);
+  I0 = setdiff(1:N,I1);
+  if rank(X(I0,:))==P
+    Done=true;
+  end
+end
+
+% Magnus, J. R., & Sinha, A. K. (2005). On Theil’s errors. The Econometrics
+% Journal, 8(1), 39–54.
+
+% S and Q (A) are transposed relative to Magnus & Sinha
+M    = eye(N) - X*inv(X'*X)*X';
+S    = eye(N);
+S    = S(I1,I);
+Q    = sqrtm(inv(S*M*S')) S*M;  
