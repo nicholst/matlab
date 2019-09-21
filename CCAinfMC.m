@@ -1,6 +1,6 @@
-function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
+function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun,sig)
 % Monte Carlo evaluation of CCA inference
-% CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
+% CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun,sig)
 %
 % N     - Number of subjects
 % Ny    - Number of variables in Y
@@ -15,7 +15,7 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
 %            1 - Shur
 %            2 - SVD
 %            3 - BLUS residuals
-% 
+% sig   - Standard deviation of signal to add to X & Y (default: 0)
 %
 % All arguments required.  Summary of results printed; nothing saved.
 %
@@ -38,6 +38,12 @@ for r = 1:nR
     X = randn(N,Nx);
     Z = [randn(N,Nz) ones(N,1)];
     
+    if sig>0
+      CommSig=randn(N,1)*sig;
+      Y = Y + CommSig;
+      X = X + CommSig;
+    end
+
     % Residual forming matrix:
     pZ = pinv(Z);
     Rz = eye(N) - Z*pZ;
