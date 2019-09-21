@@ -28,6 +28,15 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun)
 
 FreemanLane=false;
 
+ppararep  = zeros(nR,length(R));  % Parametric p-value from CCA F-test
+ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test
+pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
+corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
+corrLast  = corrFirst;            % To store the CCs for the last permutation
+				  % (any perm would do, the last is simpler as it
+				  % it stays in the memory at the end of the
+				  % permutation loop).
+
 % For each realization:
 for r = 1:nR
     fprintf('Realization %d\n',r)
@@ -76,17 +85,7 @@ for r = 1:nR
     % Permutation test:
     pperm = ones(size(R));
     pcorr = ones(size(R));
-    for p = 1:(nP-1)
-        if r == 1 && p == 1
-            ppararep  = zeros(nR,length(R));  % Parametric p-value from CCA F-test
-            ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test
-            pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
-            corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
-            corrLast  = corrFirst;            % To store the CCs for the last permutation
-                                              % (any perm would do, the last is simpler as it
-                                              % it stays in the memory at the end of the
-                                              % permutation loop).
-        end
+    parfor p = 1:(nP-1)
         if FreemanLane
             tmpX = X(randperm(size(X,1)),:);
             [~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
