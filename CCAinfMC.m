@@ -28,14 +28,6 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun,sig)
 
 FreemanLane=false;
 
-ppararep  = zeros(nR,length(R));  % Parametric p-value from CCA F-test
-ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test
-pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
-corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
-corrLast  = corrFirst;            % To store the CCs for the last permutation
-				  % (any perm would do, the last is simpler as it
-				  % it stays in the memory at the end of the
-				  % permutation loop).
 
 % For each realization:
 for r = 1:nR
@@ -100,6 +92,16 @@ for r = 1:nR
         end
         pperm = pperm + (statsp.F >= stats.F);
         pcorr = pcorr + (Rp >= R);
+    end
+    if (r==1)
+      ppararep  = zeros(nR,length(R));  % Parametric p-value from CCA F-test
+      ppermrep  = zeros(nR,length(R));  % Permutation p-value based on F-test
+      pcorrrep  = zeros(nR,length(R));  % Permutation p-value based on r
+      corrFirst = zeros(nR,length(R));  % To store the CCs for the first permutation
+      corrLast  = corrFirst;            % To store the CCs for the last permutation
+					% (any perm would do, the last is simpler as it
+					% it stays in the memory at the end of the
+					% permutation loop).
     end
     pperm = pperm/nP;
     pcorr = pcorr/nP;
