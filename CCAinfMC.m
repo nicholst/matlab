@@ -83,7 +83,7 @@ for r = 1:nR
     % Permutation test:
     pperm = ones(size(R));
     pcorr = ones(size(R));
-    parfor p = 1:(nP-1)
+    for p = 1:(nP-1)
         if FreemanLane
             tmpX = X(randperm(size(X,1)),:);
             [~,~,Rp,~,~,statsp] = canoncorr(Y,tmpX-Z*(pZ*tmpX));
