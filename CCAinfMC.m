@@ -17,6 +17,10 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun,sig)
 %            3 - BLUS residuals
 % sig   - Standard deviation of signal to add to X & Y (default: 0)
 %
+%
+% If Nz<0, then Z will be derived as an average of columns of X & Y, which 
+% could be one of the most pathological nuisance settings.
+%
 % All arguments required.  Summary of results printed; nothing saved.
 %
 % An interecept is always used; Nz=1 means one nuisance variable (in
@@ -28,6 +32,12 @@ function CCAinfMC(N,Ny,Nx,Nz,Npca,nR,nP,HuhJhun,sig)
 
 FreemanLane=false;
 
+ZdepXY = false;
+if (Nz<0)
+  ZdepXY = true;
+  Nz = abs(Nz);
+end
+
 
 % For each realization:
 for r = 1:nR
@@ -38,8 +48,15 @@ for r = 1:nR
     Y = randn(N,Ny);
     X = randn(N,Nx);
     Z = [randn(N,Nz) ones(N,1)];
+
+    if ZdepXY
+      % Make nuisance dependent on X & Y
+      d = min([Nz,Nx,Ny]);
+      Z(:,1:d) = X(:,1:d)+Y(:,1:d);
+    end
     
     if sig>0
+      % Add common signal
       CommSig=randn(N,1)*sig;
       Y = Y + CommSig;
       X = X + CommSig;
