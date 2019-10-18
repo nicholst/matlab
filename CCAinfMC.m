@@ -50,9 +50,10 @@ for r = 1:nR
     Z = [randn(N,Nz) ones(N,1)];
 
     if ZdepXY
-      % Make nuisance dependent on X & Y
+      % Add nuisance
       d = min([Nz,Nx,Ny]);
-      Z(:,1:d) = X(:,1:d)+Y(:,1:d);
+      Y(:,1:d) = Y(:,1:d) + Z(:,1:d);
+      X(:,1:d) = X(:,1:d) + Z(:,1:d);
     end
     
     if sig>0
