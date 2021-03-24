@@ -37,7 +37,7 @@ if nargin < 4
     con=eye(P);
 else
     if size(con,2)~=P
-        error('Contrast matrix c not a matrix with P columns')
+        error('Contrast matrix con not a matrix with P columns')
     end
 end
 Ncon = size(con,1);
