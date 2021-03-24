@@ -28,7 +28,7 @@ P = size(X,2);
 if ~all(size(bID)==[N,1])
     error('Block IDs bID not a N-vector')
 end
-P = size(Y,2);
+Nelm = size(Y,2);
 if size(Y,1)~=N
     error('Data Y not a matrix with N rows')
 end
@@ -50,6 +50,9 @@ pX      = pinv(X);
 bh      = pX*Y;
 res     = Y-X*bh;
 
+%
+% Compute robust (sandwich) variance estimator
+%
 
 IDs    = unique(bID)';
 
@@ -69,6 +72,7 @@ for s = IDs
     S    = S + mtimesx(S0,'t',S0);
 end
 
+
 %
 % Compute contrasts
 %
@@ -78,7 +82,7 @@ cbetaSE  = zeros(Ncon,Nelm);
 for i = 1:Ncon
     c = con(i,:);
     cbetahat = c*bh;
-    cbetaSE = sqrt(mtimesx(c*S,c,'t'));
+    cbetaSE = sqrt(mtimesx(mtimesx(c,S),c,'t'));
 end
 
 
