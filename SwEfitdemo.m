@@ -35,7 +35,7 @@ sig2ols= sum(res.^2)/(N-P);
 SEols  = diag(pX*pX') .* sig2ols;
 Tols   = bh./SEols;
 
-disp("OLS: ");toc
+disp('OLS: ');toc
 
 
 % Computation of SwE standard errors
@@ -44,12 +44,12 @@ tic;
 Iblock = repelem([1:Nblock]',Nperblock);
 [cbetahat,cbetaSE]=SwEfit(X,Iblock,Y);
 
-disp("SwE vectorised: ");toc
+disp('SwE vectorised: ');toc
 
 Tsd=[std(Tols(2,:)),std(Tswe(2,:))];
 
-disp("Standard deviation of T scores for between block covariate... should be 1.0\n")
-fprintf("SD(T_ols) = %f  SD(T_sd) = %f\n",Tsd);
+disp('Standard deviation of T scores for between block covariate... should be 1.0\n')
+fprintf('SD(T_ols) = %f  SD(T_sd) = %f\n',Tsd);
 
 
 
