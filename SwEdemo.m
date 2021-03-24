@@ -5,6 +5,7 @@
 % Based on https://github.com/nicholst/tenR/blob/master/SwEdemo.R
 %
 % T. Nichols 24 March 2021
+% See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 
 % 'block' is cluster variable, might be family, site, subject (for repeated mes)

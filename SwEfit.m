@@ -15,6 +15,7 @@ function [cbetahat, cbetaSE] = SwEfit(X,bID,Y,con)
 %    https://www.mathworks.com/matlabcentral/fileexchange/25977-mtimesx-fast-matrix-multiply-with-multi-dimensional-support
 %
 % T. Nichols 24 March 2021
+% See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 
 %
