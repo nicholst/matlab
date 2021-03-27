@@ -65,7 +65,7 @@ for b = IDs
     E    = BreadX(:,I)*res(I,:);
     E    = reshape(E,[P,1,Nelm]);
     % Full `Bread*Meat*Bread' contribution for block b
-    S    = S + mtimesx(E,'n',E,'t');
+    S    = S + pagemtimes(E,'none',E,'transpose');
 end
 
 
@@ -78,7 +78,7 @@ cbetaSE  = zeros(Ncon,Nelm);
 for i = 1:Ncon
     c             = con(i,:);
     cbetahat(i,:) = c*bh;
-    cbetaSE(i,:)  = sqrt(mtimesx(mtimesx(c,S),c,'t'));
+    cbetaSE(i,:)  = sqrt(pagemtimes(pagemtimes(c,S),'none',c,'transpose'));
 end
 
 
