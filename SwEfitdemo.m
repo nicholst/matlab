@@ -7,14 +7,14 @@
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 % 'block' is cluster variable, might be family, site, subject (for repeated mes)
-Nblock    = 100;
+Nblock    = 1000;
 Nperblock = 4;       % Number of observations pers block
-Nelm      = 32492;   % Number of vertices/voxels
+Nelm      = 3200;   % Number of vertices/voxels
 rho       = 0.95;    % Intrablock correlation... maxed out to verify SwE is working
-
 
 P       = 10;      % Number of predictors... all fake/simulated
 N       = Nblock*Nperblock;
+Iblock  = repelem([1:Nblock]',Nperblock);
 
 % Design: intercept, one between block variable, rest within block
 X = [ones(N,1),...
@@ -34,25 +34,43 @@ res     = Y-X*bh;
 sig2ols= sum(res.^2)/(N-P);
 SEols  = diag(pX*pX') .* sig2ols;
 Tols   = bh./SEols;
+fprintf('OLS:                      ');toc
 
-disp('OLS: ');toc
 
-
-% Computation of SwE standard errors
+% Computation of SwE standard errors, iid working cov
 tic;
+[cbetahat0,cbetaSE0]=SwEfit0(X,Iblock,Y);
+fprintf('SwE vectorised, ident W:  ');toc
 
-Iblock = repelem([1:Nblock]',Nperblock);
-[cbetahat,cbetaSE]=SwEfit(X,Iblock,Y);
+% Computation of SwE standard errors, global working cov
+tic;
+[cbetahat1,cbetaSE1,Vg]=SwEfit(X,Iblock,Y,[],1);
+fprintf('SwE vectorised, global W: ');toc
 
-disp('SwE vectorised: ');toc
+Tswe0 = cbetahat0./cbetaSE0;
+Tswe1 = cbetahat1./cbetaSE1;
 
-Tswe = cbetahat./cbetaSE;
+fprintf('\nEfficiency of non-idd working cov relative to OLS\n')
+fprintf('BetweenCov: SD(beta_swe1)/SD(beta_ols) = %f\n',...
+        std(cbetahat1(2,:))/std(bh(2,:)));
+fprintf('WithinCov:  SD(beta_swe1)/SD(beta_ols) = %f\n',...
+        std(cbetahat1(3,:))/std(bh(3,:)));
 
-Tsd=[std(Tols(2,:)),std(Tswe(2,:))];
+fprintf('\nStandard deviation of T (should be 1.0)\n')
+fprintf('BetweenCov: SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
+        std(Tols(2,:)), std(Tswe0(2,:)),  std(Tswe1(2,:)));
+fprintf('WithinCov:  SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
+        std(Tols(3,:)), std(Tswe0(3,:)),  std(Tswe1(3,:)));
 
-disp('Standard deviation of T scores for between block covariate... should be 1.0\n')
-fprintf('SD(T_ols) = %f  SD(T_sd) = %f\n',Tsd);
-
+for i = 2:3
+    figure(i)
+    P0 = tcdf(Tswe0(i,:),N-P,'upper');
+    P1 = tcdf(Tswe1(i,:),N-P,'upper');
+    loglog((1:Nelm)'/Nelm,[sort(P0'),sort(P1')]);
+    grid on;legend('swe0','swe1','AutoUpdate','off')
+    set(refline(1),'linestyle',':')
+    title(sprintf("Parameter %d"),i)
+end
 
 
 
