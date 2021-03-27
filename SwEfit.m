@@ -63,9 +63,9 @@ for b = IDs
     Ns   = sum(I);
     % BreadX times half of Meat
     E    = BreadX(:,I)*res(I,:);
-    E    = reshape(E,[1,P,Nelm]);
+    E    = reshape(E,[P,1,Nelm]);
     % Full `Bread*Meat*Bread' contribution for block b
-    S    = S + mtimesx(E,'t',E,'n');
+    S    = S + mtimesx(E,'n',E,'t');
 end
 
 
@@ -76,9 +76,9 @@ cbetahat = zeros(Ncon,Nelm);
 cbetaSE  = zeros(Ncon,Nelm);
 
 for i = 1:Ncon
-    c = con(i,:);
-    cbetahat = c*bh;
-    cbetaSE(i,:) = sqrt(mtimesx(mtimesx(c,S),c,'t'));
+    c             = con(i,:);
+    cbetahat(i,:) = c*bh;
+    cbetaSE(i,:)  = sqrt(mtimesx(mtimesx(c,S),c,'t'));
 end
 
 
