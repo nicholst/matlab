@@ -7,7 +7,7 @@
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 % 'block' is cluster variable, might be family, site, subject (for repeated mes)
-Nblock    = 15;
+Nblock    = 100;
 Nperblock = 4;       % Number of observations pers block
 Nelm      = 32492;   % Number of vertices/voxels
 rho       = 0.95;    % Intrablock correlation... maxed out to verify SwE is working
@@ -45,6 +45,8 @@ Iblock = repelem([1:Nblock]',Nperblock);
 [cbetahat,cbetaSE]=SwEfit(X,Iblock,Y);
 
 disp('SwE vectorised: ');toc
+
+Tswe = cbetahat./cbetaSE;
 
 Tsd=[std(Tols(2,:)),std(Tswe(2,:))];
 
