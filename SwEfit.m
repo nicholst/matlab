@@ -9,10 +9,6 @@ function [cbetahat, cbetaSE] = SwEfit(X,bID,Y,con)
 %   Y   - Data, N x Nelm
 %   con - Matrix of t contrasts, Ncon x P; if omitted defaults to eye(P)
 %
-% Depends on the mtimesx package:
-%
-%    James Tursa (2021). MTIMESX - Fast Matrix Multiply with Multi-Dimensional Support 
-%    https://www.mathworks.com/matlabcentral/fileexchange/25977-mtimesx-fast-matrix-multiply-with-multi-dimensional-support
 %
 % T. Nichols 24 March 2021
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
@@ -57,8 +53,7 @@ res     = Y-X*bh;
 
 IDs    = unique(bID)';
 
-SEswe  = zeros(P,Nelm);
-Bread  = inv(X'*X)';
+Bread  = pX*pX';
 BreadX = Bread*X';
 S      = zeros(P,P,Nelm);
 S0     = zeros(1,P,Nelm);
@@ -70,7 +65,7 @@ for s = IDs
     S0   = BreadX(:,I)*res(I,:);
     S0   = reshape(S0,[1,P,Nelm]);
     % Full `Bread*Meat*Bread' contribution for block s
-    S    = S + mtimesx(S0,'t',S0);
+    S    = S + mtimesx(S0,'t',S0,'n');
 end
 
 
@@ -83,9 +78,8 @@ cbetaSE  = zeros(Ncon,Nelm);
 for i = 1:Ncon
     c = con(i,:);
     cbetahat = c*bh;
-    cbetaSE = sqrt(mtimesx(mtimesx(c,S),c,'t'));
+    cbetaSE(i,:) = sqrt(mtimesx(mtimesx(c,S),c,'t'));
 end
-
 
 
 
