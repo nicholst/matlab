@@ -60,6 +60,7 @@ else
         end
         if Vg
             CalcVg = true;
+            Vg = cell(Nblock,1);
         end
     else
         if length(Vg)~=Nblock
