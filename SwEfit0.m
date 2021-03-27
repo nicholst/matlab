@@ -1,8 +1,8 @@
-function [cbetahat, cbetaSE] = SwEfit(X,bID,Y,con)
-% FUNCTION [cbetahat, cbetaSE] = SwEfit(X,bID,Y,con)
+function [cbetahat, cbetaSE] = SwEfit0(X,bID,Y,con)
+% FUNCTION [cbetahat, cbetaSE] = SwEfit0(X,bID,Y,con)
 %
 % Estimate betahat with OLS and obtain standard errors using the 'classic'
-% Sandwich estimator.  
+% Sandwich estimator, most bare-bones version (identity working covariance).  
 %
 %   X   - Design matrix, N x P
 %   bID - Block IDs, identifying clusters, might be family, site, subject (for repeated mes) 
@@ -61,8 +61,8 @@ E      = zeros(1,P,Nelm);
 for b = IDs
     I    = (b==bID);
     Ns   = sum(I);
-    % BreadX times half of Meat
-    E    = BreadX(:,I)*res(I,:);
+    % BreadX times half of Meat, with type 1 residual correction
+    E    = BreadX(:,I)*res(I,:)*sqrt(N/(N-P));
     E    = reshape(E,[P,1,Nelm]);
     % Full `Bread*Meat*Bread' contribution for block b
     S    = S + pagemtimes(E,'none',E,'transpose');
