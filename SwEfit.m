@@ -56,16 +56,16 @@ IDs    = unique(bID)';
 Bread  = pX*pX';
 BreadX = Bread*X';
 S      = zeros(P,P,Nelm);
-S0     = zeros(1,P,Nelm);
+E      = zeros(1,P,Nelm);
 
-for s = IDs
-    I    = (s==bID);
+for b = IDs
+    I    = (b==bID);
     Ns   = sum(I);
     % BreadX times half of Meat
-    S0   = BreadX(:,I)*res(I,:);
-    S0   = reshape(S0,[1,P,Nelm]);
-    % Full `Bread*Meat*Bread' contribution for block s
-    S    = S + mtimesx(S0,'t',S0,'n');
+    E    = BreadX(:,I)*res(I,:);
+    E    = reshape(E,[1,P,Nelm]);
+    % Full `Bread*Meat*Bread' contribution for block b
+    S    = S + mtimesx(E,'t',E,'n');
 end
 
 
