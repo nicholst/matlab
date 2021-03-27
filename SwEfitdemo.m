@@ -3,18 +3,18 @@
 %
 % Based on https://github.com/nicholst/tenR/blob/master/SwEdemo.R
 %
-% T. Nichols 24 March 2021
+% T. Nichols 27 March 2021
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 % 'block' is cluster variable, might be family, site, subject (for repeated mes)
 Nblock    = 1000;
 Nperblock = 4;       % Number of observations pers block
-Nelm      = 3200;   % Number of vertices/voxels
+Nelm      = 3200;    % Number of vertices/voxels
 rho       = 0.95;    % Intrablock correlation... maxed out to verify SwE is working
 
-P       = 10;      % Number of predictors... all fake/simulated
-N       = Nblock*Nperblock;
-Iblock  = repelem([1:Nblock]',Nperblock);
+P         = 10;      % Number of predictors... all fake/simulated
+N         = Nblock*Nperblock;
+Iblock    = repelem([1:Nblock]',Nperblock);
 
 % Design: intercept, one between block variable, rest within block
 X = [ones(N,1),...
@@ -25,15 +25,14 @@ X = [ones(N,1),...
 Y = sqrt(1-rho)*randn(N,Nelm) + ...
     sqrt(rho)  *reshape(repelem(randn(Nblock*Nelm,1),Nperblock),N,Nelm);
 
-tic;
-
 % OLS fit
+tic;
 pX      = pinv(X);
 bh      = pX*Y;
 res     = Y-X*bh;
-sig2ols= sum(res.^2)/(N-P);
-SEols  = diag(pX*pX') .* sig2ols;
-Tols   = bh./SEols;
+sig2ols = sum(res.^2)/(N-P);
+SEols   = sqrt(diag(pX*pX') .* sig2ols);
+Tols    = bh./SEols;
 fprintf('OLS:                      ');toc
 
 
