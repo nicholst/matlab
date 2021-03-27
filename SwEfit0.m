@@ -60,7 +60,6 @@ E      = zeros(1,P,Nelm);
 
 for b = IDs
     I    = (b==bID);
-    Ns   = sum(I);
     % BreadX times half of Meat, with type 1 residual correction
     E    = BreadX(:,I)*res(I,:)*sqrt(N/(N-P));
     E    = reshape(E,[P,1,Nelm]);
