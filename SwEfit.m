@@ -70,7 +70,7 @@ else
             if ~all(size(Vg{i})==[bN(i) bN(i)])
                 error(sprintf('Global variance for block %d wrong size',i));
             end
-            W{i} = inv(Vg{i});
+            W{i} = pinv(Vg{i});
         end
     end
 end
@@ -101,11 +101,11 @@ else
     XtW  = zeros(P,N);
     for i = 1:Nblock
         I        = bI{i};
-        W{i}     = inv(Vg{i});
+        W{i}     = pinv(Vg{i});
         XtWX     = XtWX + X(I,:)'*W{i}*X(I,:);
         XtW(:,I) = X(I,:)'*W{i};
     end
-    BreadXW = inv(XtWX)*XtW;
+    BreadXW = pinv(XtWX)*XtW;
 end
 
 %
