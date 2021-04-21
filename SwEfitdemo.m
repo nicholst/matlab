@@ -15,11 +15,15 @@ rho       = 0.95;    % Intrablock correlation... maxed out to verify SwE is work
 P         = 10;      % Number of predictors... all fake/simulated
 N         = Nblock*Nperblock;
 Iblock    = repelem([1:Nblock]',Nperblock);
+prop0     = 0.1;     % proportion of predictor that piles up at min value
 
 % Design: intercept, one between block variable, rest within block
+myrand=@(p,q,prop0)[rand(p,q).*binornd(1,1-prop0,p,q)];
+%myrand=@(p,q,prop0)[(0.5+0.5*rand(p,q)).*binornd(1,1-prop0,p,q)];
 X = [ones(N,1),...
      zeros(N,1),...
-     rand(N,P-2)];
+     myrand(N,P-2,prop0)];
+
 
 % Split predictor 3: 
 %     X(:,2) is pure between block
@@ -28,6 +32,9 @@ for i=1:Nblock
     I = Iblock==i;
     X(I,2) = mean(X(I,3));
     X(I,3) = X(I,3)-X(I,2);
+    if binornd(1,prop0)
+        X(I,2) = -0.5;
+    end
 end
 
 % Simulate repeated measures data, N x Nelm, with intrablock correlation rho
@@ -71,7 +78,7 @@ fprintf('PureBtwCov: SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
         std(Tols(2,:)), std(Tswe0(2,:)),  std(Tswe1(2,:)));
 fprintf('PureWtnCov: SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
         std(Tols(3,:)), std(Tswe0(3,:)),  std(Tswe1(3,:)));
-fprintf('BtwWtnCov:   SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
+fprintf('BtwWtnCov:  SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
         std(Tols(4,:)), std(Tswe0(4,:)),  std(Tswe1(4,:)));
 
 for i = 2:3
