@@ -1,6 +1,6 @@
 N = 100;     % Number of subjects
 M = 200;    % Number of voxels/imaging features combined in generative modoel
-Mpca = 20;  % For linear regression approach, number of pca components to use
+Mpca = 50;  % For linear regression approach, number of pca components to use
 nRlz = 1000; % Number of releasations
 
 sig2M = 0.4; % Morphometric variance -- Set this [0,1] so that m2 is same as sig2M

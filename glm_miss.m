@@ -5,10 +5,18 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     % M - NxK mask - 1 if present, 0 if missing
     % c - 1xP contrast
     %
-    % Depends on mtimesx package 
+    % If pagemtimes isn't available, depends on mtimesx package 
     % https://uk.mathworks.com/matlabcentral/fileexchange/25977-mtimesx-fast-matrix-multiply-with-multi-dimensional-support
     % No NaN's are allowed, rather, the presence missingness in a given column of Y 
     % must be indicated in the mask matrix M
+
+    if exist('pagemtimes')
+        mymtimes = @(x,y)pagemtimes(x,y);
+    elseif exist('mtimesx')
+        mymtimes = @(x,y)mtimesx(x,y);
+    else
+        error('Neither pagemtimes or mtimesx exists; upgrade to Matlab R2020b or install mtimesx')
+    end
 
     global MX MY XtMX XtMXi % Keep these to improve memory management with permutation
 
@@ -27,19 +35,19 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     MX = reshape(M,[N,1,K]).*X;
 
     % Compute OLS estimates accounting for missingness
-    XtMX = mtimesx(X',MX);
+    XtMX = mymtimes(X',MX);
     XtMXi = zeros(size(XtMX));
     for k = 1:K
         XtMXi(:,:,k) = inv(XtMX(:,:,k));
     end
-    XtMY = mtimesx(X',MY);
-    bh = mtimesx(XtMXi,XtMY);
+    XtMY = mymtimes(X',MY);
+    bh = mymtimes(XtMXi,XtMY);
     DF  = nM - P;
 
-    sig2 = sum((MY - mtimesx(MX,bh)).^2,1) ./ reshape(DF,[1 1 K]);
+    sig2 = sum((MY - mymtimes(MX,bh)).^2,1) ./ reshape(DF,[1 1 K]);
     
-    con = mtimesx(c,bh);
-    SE2 = mtimesx(c,mtimesx(XtMXi,c')).*sig2;
+    con = mymtimes(c,bh);
+    SE2 = mymtimes(c,mymtimes(XtMXi,c')).*sig2;
     T   = con./sqrt(SE2);
     T   = reshape(T,[1,K]);
 

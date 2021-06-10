@@ -34,7 +34,6 @@ for i = 1:Nperm
     Ic = c~=0;
     Xc = X(:,Ic);
     Xn = X(:,~Ic);
-    RXn = eye(N)
     P = randperm(N);
     zperm(i,:) = glm_miss([Xc(P,:) Xn],Y,M,[c(Ic) c(~Ic)]);
     Mzperm(i) = max(zperm(i,:));
