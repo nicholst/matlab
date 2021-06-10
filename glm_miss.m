@@ -5,20 +5,29 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     % M - NxK mask - 1 if present, 0 if missing
     % c - 1xP contrast
     %
+    % No NaN's are allowed, rather, the presence any missingness in Y 
+    % must be indicated in the mask matrix M.  (Missingness in X could 
+    % be accommodated, by indicating missingness in any row i of X with
+    % *all* K elements of row i of M being set to zero, but has no
+    % advantage over just removing that row from the outset.)
+    % 
     % If pagemtimes isn't available, depends on mtimesx package 
     % https://uk.mathworks.com/matlabcentral/fileexchange/25977-mtimesx-fast-matrix-multiply-with-multi-dimensional-support
-    % No NaN's are allowed, rather, the presence missingness in a given column of Y 
-    % must be indicated in the mask matrix M
+    %________________________________________________________________________
+    % TE Nichols June 2021
 
     if exist('pagemtimes')
-        mymtimes = @(x,y)pagemtimes(x,y);
+        mymtimes    = @(x,y)pagemtimes(x,y);
+        mymtimest2  = @(x,y)pagemtimes(x,'none',y,'transpose');
     elseif exist('mtimesx')
-        mymtimes = @(x,y)mtimesx(x,y);
+        mymtimes    = @(x,y)mtimesx(x,y,'t');
+        mymtimest2  = @(x,y)mtimesx(x,y,'t');
     else
         error('Neither pagemtimes or mtimesx exists; upgrade to Matlab R2020b or install mtimesx')
     end
 
-    global MX MY XtMX XtMXi % Keep these to improve memory management with permutation
+    % Make big variables permanent to improve memory management with permutation
+    global MX MY XtMX XtMXi XtMY bh sig2 con SE2 T 
 
     if any(isnan(Y(:)))
         error('NaNs not allowed; encode missingness with M')
@@ -28,30 +37,27 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     P = size(X,2);
     K = size(Y,2);
     
-    nM = sum(M,1);
-
     % Mask model, data
-    MY = reshape(M.*Y,[N,1,K]);
-    MX = reshape(M,[N,1,K]).*X;
+    MY = reshape(M.*Y,[N,1,K]);             % MY:    N x 1 x K
+    MX = reshape(M,[N,1,K]).*X;             % MX:    N x P x K
 
-    % Compute OLS estimates accounting for missingness
-    XtMX = mymtimes(X',MX);
-    XtMXi = zeros(size(XtMX));
+    % Compute OLS estimates accounting for missingness, 
+    % essentially: "betahat = pinv(MX)*MY"
+    pMX = zeros(P,N,K);                     % pMX:   P x N x K
     for k = 1:K
-        XtMXi(:,:,k) = inv(XtMX(:,:,k));
+        I = M(:,k)~=0;
+        pMX(:,I,k) = pinv(squeeze(MX(I,:,k)));
     end
-    XtMY = mymtimes(X',MY);
-    bh = mymtimes(XtMXi,XtMY);
-    DF  = nM - P;
+    bh1 = mymtimes(pMX,MY);                 % bh:    P x 1 x K
 
+    % Inference...               sig2,con,SE2,T,Z:   1 x 1 x K
     sig2 = sum((MY - mymtimes(MX,bh)).^2,1) ./ reshape(DF,[1 1 K]);
-    
-    con = mymtimes(c,bh);
-    SE2 = mymtimes(c,mymtimes(XtMXi,c')).*sig2;
-    T   = con./sqrt(SE2);
-    T   = reshape(T,[1,K]);
+    con  = mymtimes(c,bh);
+    SE2  = mymtimes(c,mymtimes(mymtimest2(pMX,pMX),c')).*sig2;
+    T    = con./sqrt(SE2);
+    T    = reshape(T,[1,K]);
 
-    Z   = zeros(1,K);
+    Z = zeros(1,K);
     % Upper tail t to z
     I = Z>=0;
     Z(I) = -norminv(tcdf(T(I),DF(I),'upper'));
