@@ -27,7 +27,7 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     end
 
     % Make big variables permanent to improve memory management with permutation
-    global MX MY XtMX XtMXi XtMY bh sig2 con SE2 T 
+    global MX MY pMX bh sig2 con SE2 T 
 
     if any(isnan(Y(:)))
         error('NaNs not allowed; encode missingness with M')
@@ -40,6 +40,15 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     % Mask model, data
     MY = reshape(M.*Y,[N,1,K]);             % MY:    N x 1 x K
     MX = reshape(M,[N,1,K]).*X;             % MX:    N x P x K
+
+    % Check if contrast is estimable for every k
+    for k = 1:K
+        I  = M(:,k)~=0;
+        mX = squeeze(MX(I,:,k));
+        if any(max(abs(c'-mX'*pinv(mX')*c'))>1e-8)
+            warning(sprintf('Missingness in element %d leads to unestimable contrast',k))
+        end
+    end
 
     % Compute OLS estimates accounting for missingness, 
     % essentially: "betahat = pinv(MX)*MY"
