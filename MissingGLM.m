@@ -31,11 +31,12 @@ Mzperm = zeros(Nperm,1);
 for i = 1:Nperm
     % Use Draper-Stoneman method (Winkler et al. 2014)
     % We assume contrast c has just a single non-zero element
-    Xc = X(:,c~=0);
-    Xn = X(:,c==0);
+    Ic = c~=0;
+    Xc = X(:,Ic);
+    Xn = X(:,~Ic);
     RXn = eye(N)
     P = randperm(N);
-    zperm(i,:) = glm_miss([Xc(P,:) Xn],Y,M,c);
+    zperm(i,:) = glm_miss([Xc(P,:) Xn],Y,M,[c(Ic) c(~Ic)]);
     Mzperm(i) = max(zperm(i,:));
 end
 
