@@ -57,9 +57,10 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         I = M(:,k)~=0;
         pMX(:,I,k) = pinv(squeeze(MX(I,:,k)));
     end
-    bh1 = mymtimes(pMX,MY);                 % bh:    P x 1 x K
+    bh = mymtimes(pMX,MY);                  % bh:    P x 1 x K
 
     % Inference...               sig2,con,SE2,T,Z:   1 x 1 x K
+    DF   = sum(M)-P;
     sig2 = sum((MY - mymtimes(MX,bh)).^2,1) ./ reshape(DF,[1 1 K]);
     con  = mymtimes(c,bh);
     SE2  = mymtimes(c,mymtimes(mymtimest2(pMX,pMX),c')).*sig2;
