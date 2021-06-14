@@ -36,15 +36,15 @@ for i = 1:Nperm
     Xn = X(:,~Ic);
     P = randperm(N);
     zperm(i,:) = glm_miss([Xc(P,:) Xn],Y,M,[c(Ic) c(~Ic)]);
-    Mzperm(i) = max(zperm(i,:));
+    Mzperm(i)  = max(abs(zperm(i,:)));
 end
 
 % Compute P-values
 Puncr = zeros(K,1);
 Pcorr = zeros(K,1);
 for k = 1:K
-    Puncr(k) = (sum(z0(k)<=zperm(:,k))+1)/(Nperm+1);
-    Pcorr(k) = (sum(z0(k)<=Mzperm)+1)/(Nperm+1);
+    Puncr(k) = (sum(abs(z0(k))<=abs(zperm(:,k)))+1)/(Nperm+1);
+    Pcorr(k) = (sum(abs(z0(k))<=Mzperm)         +1)/(Nperm+1);
 
 end
 
