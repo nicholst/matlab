@@ -62,7 +62,7 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
             I = M(:,k)~=0;
             pMX(:,I,k) = pinv(squeeze(MX(I,:,k)));
         end
-        bh = mymtimes(pMX,MY);              % bh:      P x 1 x K
+        bh  = mymtimes(pMX,MY);              % bh:      P x 1 x K
     else
         % "betahat = inv(MX'MX)*MX'*MY"
         MXtMXi = zeros(P,P,K)               % MXtMXi:  P x N x K
@@ -77,7 +77,11 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     DF   = sum(M)-P;
     sig2 = sum((MY - mymtimes(MX,bh)).^2,1) ./ reshape(DF,[1 1 K]);
     con  = mymtimes(c,bh);
-    SE2  = mymtimes(c,mymtimes(mymtimest2(pMX,pMX),c')).*sig2;
+    if Use_pinv
+        SE2 = mymtimes(c,mymtimes(mymtimest2(pMX,pMX),c')).*sig2;
+    else
+        SE2 = mymtimes(c,mymtimes(MXtMXi,             c')).*sig2;
+    end
     T    = con./sqrt(SE2);
     T    = reshape(T,[1,K]);
 
