@@ -37,6 +37,15 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         error('NaNs not allowed; encode missingness with M')
     end
 
+    % Check if contrast is estimable for every k
+    for k = 1:K
+        I  = M(:,k)~=0;
+        mX = squeeze(MX(I,:,k));
+        if any(max(abs(c'-mX'*pinv(mX')*c'))>1e-8)
+            warning(sprintf('Missingness in element %d leads to unestimable contrast',k))
+        end
+    end
+
     N = size(X,1);
     P = size(X,2);
     K = size(Y,2);
@@ -50,7 +59,7 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         I  = M(:,k)~=0;
         mX = squeeze(MX(I,:,k));
         if any(max(abs(c'-mX'*pinv(mX')*c'))>1e-8)
-            warning(sprintf('Missingness in element %d leads to unestimable contrast',k))
+            warning(sprintf('Missingness in element %d leads to unestimable contrast\n',k))
         end
     end
 
@@ -69,7 +78,7 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         for k=1:K
             MXtMXi(:,:,k) = inv(MX(:,:,k)'*MX(:,:,k));
         end
-        bh = mymtimes(MXtMXi,mymtimest1(MX,'t',MY));
+        bh = mymtimes(MXtMXi,mymtimest1(MX,MY));
                                             % bh:      P x 1 x K
     end
 
