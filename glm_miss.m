@@ -16,18 +16,22 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     %________________________________________________________________________
     % TE Nichols June 2021
 
+    Use_pinv=0;
+
     if exist('pagemtimes')
         mymtimes    = @(x,y)pagemtimes(x,y);
+        mymtimest1  = @(x,y)pagemtimes(x,'transpose',y,'none');
         mymtimest2  = @(x,y)pagemtimes(x,'none',y,'transpose');
     elseif exist('mtimesx')
-        mymtimes    = @(x,y)mtimesx(x,y,'t');
+        mymtimes    = @(x,y)mtimesx(x,y);
+        mymtimest1  = @(x,y)mtimesx(x,'t',y);
         mymtimest2  = @(x,y)mtimesx(x,y,'t');
     else
         error('Neither pagemtimes or mtimesx exists; upgrade to Matlab R2020b or install mtimesx')
     end
 
     % Make big variables permanent to improve memory management with permutation
-    global MX MY pMX bh sig2 con SE2 T 
+    global MX MY pMX MXtMXi bh sig2 con SE2 T
 
     if any(isnan(Y(:)))
         error('NaNs not allowed; encode missingness with M')
@@ -38,8 +42,8 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     K = size(Y,2);
     
     % Mask model, data
-    MY = reshape(M.*Y,[N,1,K]);             % MY:    N x 1 x K
-    MX = reshape(M,[N,1,K]).*X;             % MX:    N x P x K
+    MY = reshape(M.*Y,[N,1,K]);              % MY:     N x 1 x K
+    MX = reshape(M,[N,1,K]).*X;              % MX:     N x P x K
 
     % Check if contrast is estimable for every k
     for k = 1:K
@@ -51,13 +55,23 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
     end
 
     % Compute OLS estimates accounting for missingness, 
-    % essentially: "betahat = pinv(MX)*MY"
-    pMX = zeros(P,N,K);                     % pMX:   P x N x K
-    for k = 1:K
-        I = M(:,k)~=0;
-        pMX(:,I,k) = pinv(squeeze(MX(I,:,k)));
+    if Use_pinv
+        % "betahat = pinv(MX)*MY"
+        pMX = zeros(P,N,K);                 % pMX:     P x N x K
+        for k = 1:K
+            I = M(:,k)~=0;
+            pMX(:,I,k) = pinv(squeeze(MX(I,:,k)));
+        end
+        bh = mymtimes(pMX,MY);              % bh:      P x 1 x K
+    else
+        % "betahat = inv(MX'MX)*MX'*MY"
+        MXtMXi = zeros(P,P,K)               % MXtMXi:  P x N x K
+        for k=1:K
+            MXtMXi(:,:,k) = inv(MX(:,:,k)'*MX(:,:,k));
+        end
+        bh = mymtimes(MXtMXi,mymtimest1(MX,'t',MY));
+                                            % bh:      P x 1 x K
     end
-    bh = mymtimes(pMX,MY);                  % bh:    P x 1 x K
 
     % Inference...               sig2,con,SE2,T,Z:   1 x 1 x K
     DF   = sum(M)-P;
