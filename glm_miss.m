@@ -37,6 +37,10 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         error('NaNs not allowed; encode missingness with M')
     end
 
+    N = size(X,1);
+    P = size(X,2);
+    K = size(Y,2);
+    
     % Check if contrast is estimable for every k
     for k = 1:K
         I  = M(:,k)~=0;
@@ -46,10 +50,6 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         end
     end
 
-    N = size(X,1);
-    P = size(X,2);
-    K = size(Y,2);
-    
     % Mask model, data
     MY = reshape(M.*Y,[N,1,K]);              % MY:     N x 1 x K
     MX = reshape(M,[N,1,K]).*X;              % MX:     N x P x K
@@ -76,6 +76,7 @@ function [Z,T,bh,sig2] = glm_miss(X,Y,M,c)
         % "betahat = inv(MX'MX)*MX'*MY"
         MXtMXi = zeros(P,P,K)               % MXtMXi:  P x N x K
         for k=1:K
+            % Should I use pinv here to avoid singular problems?
             MXtMXi(:,:,k) = inv(MX(:,:,k)'*MX(:,:,k));
         end
         bh = mymtimes(MXtMXi,mymtimest1(MX,MY));
