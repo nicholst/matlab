@@ -1,5 +1,5 @@
-function [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y,con,Vg)
-% FUNCTION [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y[,con,Vg])
+function [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y,con,Vg,RA)
+% FUNCTION [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y[,con,Vg,RA])
 %
 % Estimate betahat with OLS and obtain standard errors using the 'classic'
 % Sandwich estimator, 
@@ -14,6 +14,8 @@ function [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y,con,Vg)
 %             Vg  - cell array such that inv(Vg{i}) is the working covariance for block i.
 %
 %   Vg  - Global working covariance; useful if Vg is computed on the fly.
+%   RA  - Residual adjustment; by default 'C2' (block-wise whitening); '1' (scalar) and '2' 
+%         (diagonal) corrections also available.
 %
 % T. Nichols 24 March 2021
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
@@ -74,7 +76,16 @@ else
         end
     end
 end
-
+if nargin < 6
+    RA = 'C2';
+else
+    if ~isstr(RA)
+        RA = num2str(RA);
+    end
+    if ~strcmp(RA,'1') && ~strcmp(RA,'2') && ~strcmp(RA,'C2')
+        error('Unknown residual adjustment option')
+    end
+end
 
 %
 % Compute global working covariance, if needed
@@ -111,13 +122,25 @@ end
 %
 % Residual adjustment
 %
-% For block i, (I-H_ii)^-0.5, where H_ii is the sub-matrix of the hat matrix H.
-% More sophisticated alternative to sqrt(n/(n-p)).
+% Type 1: Scale by sqrt(n/(n-p))
+% Type 2: Scale by 1/sqrt(1-h_ik)
+% Type C2: Blockwise whitening.  For block i, (I-H_ii)^-0.5, where H_ii is the sub-matrix
+%  of the hat matrix H.
 %
 Ra = cell(1,Nblock);
 for i = 1:Nblock
-    I     = bI{i};
-    Ra{i} = sqrtm(inv(eye(bN(i))-X(I,:)*BreadXW(:,I)));
+    switch RA
+      case '1'
+        Ra{i} = sqrt(N/(N-P));
+      case '2'
+        I     = bI{i};
+        Hii   = X(I,:)*BreadXW(:,I);
+        Ra{i} = diag((1-diag(Hii)).^(-0.5));
+      case 'C2'
+        I     = bI{i};
+        Hii   = X(I,:)*BreadXW(:,I);    
+        Ra{i} = sqrtm(inv(eye(bN(i))-Hii));
+    end
 end
 
 %
