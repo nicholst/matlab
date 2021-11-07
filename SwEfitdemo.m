@@ -9,14 +9,14 @@
 % 'block' is cluster variable, might be family, site, subject (for repeated mes)
 Nblock    = 1000;
 Nperblock = 4;       % Number of observations pers block
-Nelm      = 3200;    % Number of vertices/voxels
+Nelm      = 10000;    % Number of vertices/voxels
 rho       = 0.95;    % Intrablock correlation... maxed out to verify SwE is working
 
 P         = 10;      % Number of predictors... all fake/simulated
 N         = Nblock*Nperblock;
 Iblock    = repelem([1:Nblock]',Nperblock);
 prop0     = 0.95;     % proportion of predictor that piles up at min value
-alph      = 0.01;    % Nominal alpha for FPR report
+alph      = 0.001;    % Nominal alpha for FPR report
 
 % Design: intercept, one between block variable, rest within block
 myrand=@(p,q,prop0)[rand(p,q).*binornd(1,1-prop0,p,q)];
@@ -82,7 +82,7 @@ fprintf('PureWtnCov: SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
 fprintf('BtwWtnCov:  SD(T_ols) = %f  SD(T_swe0) = %f  SD(T_swe1) = %f\n',...
         std(Tols(4,:)), std(Tswe0(4,:)),  std(Tswe1(4,:)));
 
-Ta=norminv(1-alph);
+Ta=tinv(1-alph,N-P);
 fprintf('\nFPR (nominal %g, CI [%.4f,%.4f])\n',alph,alph+[-1,1]*sqrt(alph*(1-alph)/Nelm));
 fprintf('PureBtwCov: FPR(T_ols) = %f  FPR(T_swe0) = %f  FPR(T_swe1) = %f\n',...
         mean(Tols(2,:)>=Ta), mean(Tswe0(2,:)>=Ta),  mean(Tswe1(2,:)>=Ta));
