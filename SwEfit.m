@@ -72,7 +72,6 @@ else
             if ~all(size(Vg{i})==[bN(i) bN(i)])
                 error(sprintf('Global variance for block %d wrong size',i));
             end
-            W{i} = pinv(Vg{i});
         end
     end
 end
