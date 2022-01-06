@@ -37,24 +37,45 @@ Sub   = X(:,2);
 Vis   = X(:,3);
 Age   = X(:,4);
 X     = X(:,5:end);
+Nms   = readcell('FamSubVisX_names.txt', 'Delimiter',"");
+Nms(1:4)=[];
+
+Opt='PureWithin'
+switch Opt
+  case 'PureWithin'
+    for s = unique(Sub)'
+        If = Sub==s;
+        X(If,2) = X(If,2) - mean(X(If,2));
+    end
+  case 'GaussCov'
+    X(:,3:end-1) = randn(N,size(X,2)-3);
+    Nms(3:end-1) = {'rand'};
+  case 'BalBinCov'
+    X(:,3:end-1) = binor(1,0.5,N,size(X,2)-3);
+    Nms(3:end-1) = {'rand'};
+  case 'NoCov'
+    X=X(:,[1:2,end]);
+    Nms=Nms([1:2,end]);
+end
 
 N     = size(X,1);
 P     = size(X,2);
-
-Nms   = readcell('FamSubVisX_names.txt', 'Delimiter',"");
-Nms(1:4)=[];
 
 Iblock = Fam;
 Nblock = length(unique(Fam));
 Nperblock = groupcounts(Iblock);
 
-% Need rows in family order to simplify simulation
-[~,Oblock]=sort(Iblock);
-X      = X(Oblock,:);
-Fam    = Fam(Oblock,:);
-Sub    = Sub(Oblock,:);
-Vis    = Vis(Oblock,:);
-Age    = Age(Oblock,:);
+% Need rows in family order to simplify simulation (also sort so largest 
+% families are at the end, easier to see block structure)
+[~,I]=sort(Iblock);
+[~,II]=sortrows([Iblock(I),repelem(Nperblock,Nperblock)],[2 1]);
+X      = X(I(II),:);
+Fam    = Fam(I(II),:);
+Sub    = Sub(I(II),:);
+Vis    = Vis(I(II),:);
+Age    = Age(I(II),:);
+Iblock = Iblock(I(II));
+Nperblock=sort(Nperblock);
 
 % Simulate repeated measures data, N x Nelm, with intrablock correlation rho
 Y = sqrt(1-rho)*randn(N,Nelm) + ...
@@ -142,18 +163,27 @@ end
 
 figure;imagesc(X)
 
-Str={'Pure between','Pure within','Mixed'};
 for i = 1:length(cI)
     c=cI(i);
+    I=1:Nelm;
     figure
     P0 = tcdf(Tswe0(c,:),N-P,'upper');
     P1 = tcdf(Tswe1(c,:),N-P,'upper');
-    loglog((1:Nelm)'/Nelm,[sort(P0'),sort(P1'),sort(Pwb0(c,:)'),sort(Pwb1(c,:)')],'linewidth',2);
+    loglog(I'/Nelm,[sort(P0'),sort(P1'),sort(Pwb0(c,:)'),sort(Pwb1(c,:)')],'linewidth',2);
     xlabel('Expected Quantile   (conservative above identity, invalid below)')
     ylabel('Observed Quantile')
     grid on;legend('swe0','swe1','sweWB0','sweWB1','AutoUpdate','off')
     set(refline(1),'linestyle',':')
-    title(sprintf("Parameter %d: %s",c,cname{i})); % Str{i}
+    rI=fliplr(I);
+    xx=[I,rI]/(Nelm+1);
+    % https://en.wikipedia.org/wiki/Order_statistic#Order_statistics_sampled_from_a_uniform_distribution
+    yy=[betainv(alph/2,I,Nelm-I+1),betainv(1-alph/2,rI,Nelm-rI+1)];
+    h=get(gca,'children');
+    hold on;
+    fill(-log10(xx),-log10(yy),[1 1 1]*0.85,'linestyle','none')
+    hold off
+    uistack(h,'top');
+    title(sprintf("Parameter %d: %s",c,cname{i}));
 end
 
 
