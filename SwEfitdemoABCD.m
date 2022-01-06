@@ -10,7 +10,7 @@
 Nelm      = 1000;    % Number of vertices/voxels
 rho       = 0.95;  % Intrablock correlation... maxed out to verify SwE is working
 alph      = 0.05;  % Nominal alpha for FPR report
-nWB       = 0;   % Number of Wild Bootstrap iterations - Start at 100; try 1000
+nWB       = 100;   % Number of Wild Bootstrap iterations - Start at 100; try 1000
 
 % Design: Actual ABCD 2-visit design...
 %
@@ -40,7 +40,8 @@ X     = X(:,5:end);
 Nms   = readcell('FamSubVisX_names.txt', 'Delimiter',"");
 Nms(1:4)=[];
 
-Opt='PureWithin'
+Opt=''
+RA='C2';
 switch Opt
   case 'PureWithin'
     for s = unique(Sub)'
@@ -56,6 +57,8 @@ switch Opt
   case 'NoCov'
     X=X(:,[1:2,end]);
     Nms=Nms([1:2,end]);
+  case 'ScalarResCorr' % Instead of block-wise, just scalar residual correction
+    RA='1';
 end
 
 N     = size(X,1);
@@ -99,7 +102,7 @@ fprintf('SwE vectorised, ident W:  ');toc
 
 % Computation of SwE standard errors, global working cov
 tic;
-[cbetahat1,cbetaSE1,Vg]=SwEfit(X,Iblock,Y,[],1);
+[cbetahat1,cbetaSE1,Vg]=SwEfit(X,Iblock,Y,[],1,RA);
 fprintf('SwE vectorised, global W: ');toc
 
 Tswe0 = cbetahat0./cbetaSE0;
@@ -121,7 +124,7 @@ if nWB>0
         Pwb0 = Pwb0 + (cbwb./cbSEwb >= Tswe0);
 
         Ywb0 = WBf.*res1;
-        [cbwb,cbSEwb] = SwEfit(X,Iblock,Ywb0,[],1);
+        [cbwb,cbSEwb] = SwEfit(X,Iblock,Ywb0,[],1,RA);
         Pwb1 = Pwb1 + (cbwb./cbSEwb >= Tswe1);
     end
     Pwb0 = (Pwb0+1)/(nWB+1);
@@ -180,7 +183,7 @@ for i = 1:length(cI)
     yy=[betainv(alph/2,I,Nelm-I+1),betainv(1-alph/2,rI,Nelm-rI+1)];
     h=get(gca,'children');
     hold on;
-    fill(-log10(xx),-log10(yy),[1 1 1]*0.85,'linestyle','none')
+    fill(-log10(xx),-log10(yy),[1 1 1]*0.85,'linestyle','none','facealpha',.5)
     hold off
     uistack(h,'top');
     title(sprintf("Parameter %d: %s",c,cname{i}));
