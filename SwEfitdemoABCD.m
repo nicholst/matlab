@@ -7,10 +7,10 @@
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 % 'block' is cluster variable, might be family, site, subject (for repeated mes)
-Nelm      = 1000;    % Number of vertices/voxels
-rho       = 0.95;  % Intrablock correlation... maxed out to verify SwE is working
-alph      = 0.05;  % Nominal alpha for FPR report
-nWB       = 100;   % Number of Wild Bootstrap iterations - Start at 100; try 1000
+Nelm      = 5000; % Number of vertices/voxels
+rho       = 0.95; % Intrablock correlation... maxed out to verify SwE is working
+alph      = 0.05; % Nominal alpha for FPR report
+nWB       = 0;    % Number of Wild Bootstrap iterations - Start at 100; try 1000
 
 % Design: Actual ABCD 2-visit design...
 %
@@ -40,8 +40,8 @@ X     = X(:,5:end);
 Nms   = readcell('FamSubVisX_names.txt', 'Delimiter',"");
 Nms(1:4)=[];
 
-Opt=''
-RA='C2';
+Opt='BadCovOnly'
+RA='HC4';
 switch Opt
   case 'PureWithin'
     for s = unique(Sub)'
@@ -57,15 +57,14 @@ switch Opt
   case 'NoCov'
     X=X(:,[1:2,end]);
     Nms=Nms([1:2,end]);
+  case 'BadCovOnly'
+    X=X(:,[1:2,10,39,54,end]);
+    Nms=Nms([1:2,10,39,54,end]);
   case 'ScalarResCorr' % Instead of block-wise, just scalar residual correction
-    RA='1';
+    RA='HC1';
 end
 
-N     = size(X,1);
-P     = size(X,2);
-
 Iblock = Fam;
-Nblock = length(unique(Fam));
 Nperblock = groupcounts(Iblock);
 
 % Need rows in family order to simplify simulation (also sort so largest 
@@ -79,6 +78,22 @@ Vis    = Vis(I(II),:);
 Age    = Age(I(II),:);
 Iblock = Iblock(I(II));
 Nperblock=sort(Nperblock);
+
+if (0) % Filter by size of families
+    I      = repelem(Nperblock,Nperblock)>1;
+    Nperblock=Nperblock(Nperblock>1);
+    X      = X(I,:);
+    Fam    = Fam(I,:);
+    Sub    = Sub(I,:);
+    Vis    = Vis(I,:);
+    Age    = Age(I,:);
+    Iblock = Iblock(I);
+    disp(['2 or more - ',num2str(sum(I))])
+end
+
+N      = size(X,1);
+P      = size(X,2);
+Nblock = length(unique(Fam));
 
 % Simulate repeated measures data, N x Nelm, with intrablock correlation rho
 Y = sqrt(1-rho)*randn(N,Nelm) + ...
@@ -102,7 +117,7 @@ fprintf('SwE vectorised, ident W:  ');toc
 
 % Computation of SwE standard errors, global working cov
 tic;
-[cbetahat1,cbetaSE1,Vg]=SwEfit(X,Iblock,Y,[],1,RA);
+[cbetahat1,cbetaSE1,Vg]=SwEfit(X,Iblock,Y,[],[],RA);
 fprintf('SwE vectorised, global W: ');toc
 
 Tswe0 = cbetahat0./cbetaSE0;
@@ -136,8 +151,16 @@ else
 end    
 
 %cname={'Mean','PureBtwCov','BtwWtnCov'};  %,'PureWtnCov'
-cname={'Mean','BaseAge','DeltaAge'};  %,'PureWtnCov'
-cI=[size(X,2),           1,           2]; 
+%cI=[size(X,2),           1,           2]; 
+%cname={'Mean',   'BaseAge',  'DeltaAge'};  %,'PureWtnCov'
+cI=[1,3,5]; 
+cname=Nms(cI);
+for i = 1:length(cname)
+    if length(cname{i})>12
+        cname{i}=cname{i}(end-11:end);
+    end
+    cname{i}=strrep(cname{i},'\','/');
+end
 
 fprintf('\nEfficiency of non-iid working cov relative to OLS\n')
 fprintf('               SD(beta_swe1)/SD(beta_ols)\n');
@@ -164,18 +187,22 @@ for i = 1:length(cI)
         cname{i},mean(Tols(c,:)>=Ta),mean(Tswe0(c,:)>=Ta),mean(Pwb0(c,:)<=alph),mean(Tswe1(c,:)>=Ta),mean(Pwb1(c,:)<=alph));
 end
 
-figure;imagesc(X)
+%figure;imagesc(X)
 
 for i = 1:length(cI)
     c=cI(i);
     I=1:Nelm;
     figure
+    Po = tcdf(Tols(c,:), N-P,'upper');
     P0 = tcdf(Tswe0(c,:),N-P,'upper');
     P1 = tcdf(Tswe1(c,:),N-P,'upper');
-    loglog(I'/Nelm,[sort(P0'),sort(P1'),sort(Pwb0(c,:)'),sort(Pwb1(c,:)')],'linewidth',2);
+    loglog(I'/Nelm,...
+           [sort(Po'),...
+            sort(P0'),sort(P1'),...
+            sort(Pwb0(c,:)'),sort(Pwb1(c,:)')],'linewidth',2);
     xlabel('Expected Quantile   (conservative above identity, invalid below)')
     ylabel('Observed Quantile')
-    grid on;legend('swe0','swe1','sweWB0','sweWB1','AutoUpdate','off')
+    grid on;legend('ols','swe0','swe1','sweWB0','sweWB1','AutoUpdate','off')
     set(refline(1),'linestyle',':')
     rI=fliplr(I);
     xx=[I,rI]/(Nelm+1);
@@ -186,7 +213,7 @@ for i = 1:length(cI)
     fill(-log10(xx),-log10(yy),[1 1 1]*0.85,'linestyle','none','facealpha',.5)
     hold off
     uistack(h,'top');
-    title(sprintf("Parameter %d: %s",c,cname{i}));
+    title(sprintf("Parameter %d: %s",c,cname{i}),'interpreter','none');
 end
 
 
