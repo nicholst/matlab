@@ -5,19 +5,26 @@ function [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y,con,Vg,RA)
 % Sandwich estimator, 
 %
 %   X   - Design matrix, N x P
-%   bID - Block IDs, identifying clusters, might be family, site, subject (for repeated mes) 
+%   bID - Block IDs, identifying clusters, might be family, subject (for repeated meas) 
 %   Y   - Data, N x Nelm
 %   con - Matrix of t contrasts, Ncon x P; if omitted or empty defaults to eye(P)
 %   Vg  - Global working covariance:
 %             []  - use independence (default)
 %             1   - estimate the global covariance on the fly, otw
-%             Vg  - cell array such that inv(Vg{i}) is the working covariance for block i.
+%             Vg  - cell array such that inv(Vg{i}) is the working covariance for block i
 %
 %   Vg  - Global working covariance; useful if Vg is computed on the fly.
-%   RA  - Residual adjustment; by default 'C2' (block-wise whitening); '1' (scalar) and '2' 
-%         (diagonal) corrections also available.
+%   RA  - Residual adjustment; options are
+%            'HC0' - No adjustment
+%            'HC1' - Scalar adjustment, sqrt(N/(N-P))
+%            'HC2' - Diagonal adjustment, 1/sqrt(1-hii)
+%             'C2' - Multivariate HC2, (1-Hii)^(-1/2), where H_ii is the sub-matrix of
+%                    the hat matrix H.
+%            'HC3' - Diagonal adjustment, extra correction, 1/(1-hii)
+%            'HC4' - Diagonal adjustment, extra EXTRA correction, 1/(1-hii)^(delta/2),
+%                    where delta = min(4,hii/mean(hii))
 %
-% T. Nichols 24 March 2021
+% T. Nichols 11 Jan 2022
 % See https://github.com/nicholst/matlab/blob/master/LICENSE
 
 
@@ -78,10 +85,7 @@ end
 if nargin < 6
     RA = 'C2';
 else
-    if ~isstr(RA)
-        RA = num2str(RA);
-    end
-    if ~strcmp(RA,'1') && ~strcmp(RA,'2') && ~strcmp(RA,'C2')
+    if ~any(strcmp(lower(RA),lower({'HC0','HC1','HC2','C2','HC3','HC4'})))
         error('Unknown residual adjustment option')
     end
 end
@@ -121,24 +125,30 @@ end
 %
 % Residual adjustment
 %
-% Type 1: Scale by sqrt(n/(n-p))
-% Type 2: Scale by 1/sqrt(1-h_ik)
-% Type C2: Blockwise whitening.  For block i, (I-H_ii)^-0.5, where H_ii is the sub-matrix
-%  of the hat matrix H.
+% Usual robust standard error name conventions; see
+% https://cran.r-project.org/package=sandwich/vignettes/sandwich.pdf
 %
 Ra = cell(1,Nblock);
+H  = X*BreadXW;
 for i = 1:Nblock
+    I     = bI{i};
+    Hii   = H(I,I);
+    hii   = diag(H(I,I));
+    mH    = mean(diag(H));
     switch RA
-      case '1'
+      case 'HC0'
+        Ra{i} = 1;
+      case 'HC1'
         Ra{i} = sqrt(N/(N-P));
-      case '2'
-        I     = bI{i};
-        Hii   = X(I,:)*BreadXW(:,I);
-        Ra{i} = diag((1-diag(Hii)).^(-0.5));
+      case 'HC2'
+        Ra{i} = diag((1-hii).^(-0.5));
       case 'C2'
-        I     = bI{i};
-        Hii   = X(I,:)*BreadXW(:,I);    
         Ra{i} = sqrtm(inv(eye(bN(i))-Hii));
+      case 'HC3'
+        Ra{i} = diag((1-hii).^(-1));
+      case 'HC4'
+        delta = min(4,hii/mH);
+        Ra{i} = diag((1-hii).^(-delta/2));
     end
 end
 
@@ -177,5 +187,5 @@ for i = 1:Ncon
 end
 
 
+end
 
-    
