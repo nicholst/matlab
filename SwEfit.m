@@ -98,6 +98,7 @@ if CalcVg
     res = Y-X*pX*Y;
     for i = 1:Nblock
         I    = bI{i};
+        % 'C2' adjustment
         Ra   = sqrtm(inv(eye(bN(i))-X(bI{i},:)*pX(:,I)));
         ares = Ra*res(I,:);
         Vg{i} = ares*ares'/Nelm;
@@ -128,6 +129,9 @@ end
 % Usual robust standard error name conventions; see
 % https://cran.r-project.org/package=sandwich/vignettes/sandwich.pdf
 %
+% Note, when using a (non identity) working covariance hii values can be
+% less than 0 (normally, 0 <= hii <= 1).
+%
 Ra = cell(1,Nblock);
 H  = X*BreadXW;
 mH = mean(diag(H));
@@ -148,13 +152,21 @@ for i = 1:Nblock
       case 'HC3'
         Ra{i} = diag((1-hii).^(-1));
       case 'HC4'
-        delta = min(4,hii/mH);
+        % TN modification: Original HC4 uses a delta of
+        %  min(4,hii/mH))
+        % here I ensure delta never falls below mH/10
+        delta = max(min(4,hii/mH),mH/10);
         Ra{i} = diag((1-hii).^(-delta/2));
       case 'HC4m'
         delta = min(1,hii/mH)+min(1.5,hii/mH);
         Ra{i} = diag((1-hii).^(-delta/2));
       case 'HC5'
-        delta = min(max(4,0.7*mxH/mH),hii/mH);
+        % TN modification: Original HC5 uses a delta of
+        %   min(max(4,0.7*mxH/mH),hii/mH)
+        % but on horribly skewed data that causes crazy large powers
+        % Here, I put a cap of 10, which seems reasonable, and
+        % bound below by mH/10
+        delta = max(min(max(4,min(10,0.7*mxH/mH)),hii/mH),mH/10);
         Ra{i} = diag((1-hii).^(-delta/2));
     end
 end
