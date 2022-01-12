@@ -11,7 +11,7 @@ function [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y,con,Vg,RA)
 %   Vg  - Global working covariance:
 %             []  - use independence (default)
 %             1   - estimate the global covariance on the fly, otw
-%             Vg  - cell array such that inv(Vg{i}) is the working covariance for block i
+%             Vg  - cell array such that Vg{i} is the working covariance for block i
 %
 %   Vg  - Global working covariance; useful if Vg is computed on the fly.
 %   RA  - Residual adjustment; options are
@@ -130,11 +130,12 @@ end
 %
 Ra = cell(1,Nblock);
 H  = X*BreadXW;
+mH = mean(diag(H));
+mxH= max(diag(H));
 for i = 1:Nblock
     I     = bI{i};
     Hii   = H(I,I);
     hii   = diag(H(I,I));
-    mH    = mean(diag(H));
     switch RA
       case 'HC0'
         Ra{i} = 1;
@@ -148,6 +149,12 @@ for i = 1:Nblock
         Ra{i} = diag((1-hii).^(-1));
       case 'HC4'
         delta = min(4,hii/mH);
+        Ra{i} = diag((1-hii).^(-delta/2));
+      case 'HC4m'
+        delta = min(1,hii/mH)+min(1.5,hii/mH);
+        Ra{i} = diag((1-hii).^(-delta/2));
+      case 'HC5'
+        delta = min(max(4,0.7*mxH/mH),hii/mH);
         Ra{i} = diag((1-hii).^(-delta/2));
     end
 end
