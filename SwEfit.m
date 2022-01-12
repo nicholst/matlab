@@ -85,7 +85,7 @@ end
 if nargin < 6
     RA = 'C2';
 else
-    if ~any(strcmp(lower(RA),lower({'HC0','HC1','HC2','C2','HC3','HC4'})))
+    if ~any(strcmp(lower(RA),lower({'HC0','HC1','HC2','C2','HC3','HC4','HC4m','HC5'})))
         error('Unknown residual adjustment option')
     end
 end
