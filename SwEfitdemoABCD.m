@@ -10,7 +10,7 @@
 Nelm      = 1000; % Number of vertices/voxels
 rho       = 0.95; % Intrablock correlation... maxed out to verify SwE is working
 alph      = 0.05; % Nominal alpha for FPR report
-nWB       = 0;    % Number of Wild Bootstrap iterations - Start at 100; try 1000
+nWB       = 100;    % Number of Wild Bootstrap iterations - Start at 100; try 1000
 
 % Design: Actual ABCD 2-visit design...
 %
@@ -56,7 +56,9 @@ Iblock = Iblock(I(II));
 Nperblock=sort(Nperblock);
 
 Opt=''
-RA='HC5';
+Vg={[],[],1,1}; % Global estimated working cov
+RA={'HC2','HC5','HC3','HC4'}; % Different res adj methods
+cI=[2,20,53];
 switch Opt
   case 'PureWithin'
     for s = unique(Sub)'
@@ -76,6 +78,7 @@ switch Opt
     I=[1,2,20,53,size(X,2)];
     X=X(:,I);
     Nms=Nms(I);
+    cI=[2,3,4];
   case 'FilterByFamilySize'
     MinSz=2
     I      = repelem(Nperblock,Nperblock)>=MinSz;
@@ -100,6 +103,7 @@ Y = sqrt(1-rho)*randn(N,Nelm) + ...
 % OLS fit
 tic;
 pX      = pinv(X);
+hii     = diag(X*pX);
 bh      = pX*Y;
 res     = Y-X*bh;
 sig2ols = sum(res.^2)/(N-P);
@@ -110,12 +114,12 @@ fprintf('OLS:                      ');toc
 % Computation of SwE standard errors, iid working cov
 tic;
 %[cbetahat0,cbetaSE0]=SwEfit0(X,Iblock,Y);
-[cbetahat0,cbetaSE0]=SwEfit(X,Iblock,Y,[],1,'HC3');
+[cbetahat0,cbetaSE0]=SwEfit(X,Iblock,Y,[],Vg{1},RA{1});
 fprintf('SwE vectorised, ident W:  ');toc
 
 % Computation of SwE standard errors, global working cov
 tic;
-[cbetahat1,cbetaSE1,Vg]=SwEfit(X,Iblock,Y,[],1,'HC4');
+[cbetahat1,cbetaSE1]=SwEfit(X,Iblock,Y,[],Vg{2},RA{2});
 fprintf('SwE vectorised, global W: ');toc
 
 Tswe0 = cbetahat0./cbetaSE0;
@@ -124,8 +128,10 @@ Tswe1 = cbetahat1./cbetaSE1;
 if nWB>0
     tic
     % Wild Bootstrap
-    res0 = Y-X*cbetahat0;
-    res1 = Y-X*cbetahat1;
+    res0 = (Y-X*cbetahat0)./sqrt(1-hii);
+    res1 = (Y-X*cbetahat1)./sqrt(1-hii);
+    % Cribari-Neto et al. (2004) suggests that a HC4-style standardisation 
+    % works better
     Pwb0 = zeros(P,Nelm); 
     Pwb1 = zeros(P,Nelm);
     for i=1:nWB
@@ -133,11 +139,12 @@ if nWB>0
         WBf=repelem(2*binornd(1,0.5,Nblock,1)-1,Nperblock,1);
 
         Ywb0 = WBf.*res0;
-        [cbwb,cbSEwb] = SwEfit0(X,Iblock,Ywb0);
+        %[cbwb,cbSEwb] = SwEfit0(X,Iblock,Ywb0);
+        [cbwb,cbSEwb] = SwEfit(X,Iblock,Ywb0,[],Vg{1},RA{1});
         Pwb0 = Pwb0 + (cbwb./cbSEwb >= Tswe0);
 
         Ywb0 = WBf.*res1;
-        [cbwb,cbSEwb] = SwEfit(X,Iblock,Ywb0,[],1,RA);
+        [cbwb,cbSEwb] = SwEfit(X,Iblock,Ywb0,[],Vg{2},RA{2});
         Pwb1 = Pwb1 + (cbwb./cbSEwb >= Tswe1);
     end
     Pwb0 = (Pwb0+1)/(nWB+1);
@@ -148,7 +155,6 @@ else
     Pwb1 = repelem(NaN,P,Nelm);
 end    
 
-cI=2:4;
 cname=Nms(cI);
 for i = 1:length(cname)
     if length(cname{i})>16
