@@ -9,7 +9,7 @@ function [cbetahat, cbetaSE, Vg] = SwEfit(X,bID,Y,con,Vg,RA)
 %   Y   - Data, N x Nelm
 %   con - Matrix of t contrasts, Ncon x P; if omitted or empty defaults to eye(P)
 %   Vg  - Global working covariance:
-%             []  - use independence (default)
+%             0   - use independence (default)
 %             1   - estimate the global covariance on the fly, otw
 %             Vg  - cell array such that Vg{i} is the working covariance for block i
 %
@@ -70,6 +70,8 @@ else
         if Vg
             CalcVg = true;
             Vg = cell(Nblock,1);
+        else
+            Vg = [];
         end
     else
         if length(Vg)~=Nblock
@@ -96,10 +98,13 @@ end
 if CalcVg
     pX  = pinv(X);
     res = Y-X*pX*Y;
+    H   = X*pinv(X);
     for i = 1:Nblock
         I    = bI{i};
         % 'C2' adjustment, a `block-wise 1/sqrt(1-hii)'
         Ra   = sqrtm(inv(eye(bN(i))-X(bI{i},:)*pX(:,I)));
+        % 'HC2' adjustment
+        Ra   = 1./sqrt(1-diag(H(I,I)));
         ares = Ra*res(I,:);
         Vg{i} = ares*ares'/Nelm;
     end
@@ -108,9 +113,13 @@ end
 %
 % Compute BreadXW = inv(X'*W*X)*X'*W, used to estimate bh and S
 %
+% Note final X'*W is seen as (X'*W^(1/2))*W^(1/2) with final W^(1/2) the
+% whitening to be applied to Y
+%
 
 if length(Vg)==0
     BreadXW = pinv(X);
+    H       = X*BreadXW;
 else
     XtWX = zeros(P,P);
     XtW  = zeros(P,N);
@@ -123,8 +132,10 @@ else
         XtW(:,I) = X(I,:)'*W{i};
         XtWh(:,I)= X(I,:)'*Wh{i};
     end
+    % Use pinv to avoid numerical problems
     BreadXW  = pinv(XtWX)*XtW;
-    BreadXWh = pinv(XtWX)*XtWh;
+    % Hat matrix for whitened data
+    H  = XtWh'*pinv(XtWX)*XtWh;
 end
 
 %
@@ -137,7 +148,6 @@ end
 % less than 0 (normally, 0 <= hii <= 1).
 %
 Ra = cell(1,Nblock);
-H  = XtWh'*BreadXWh;
 mH = mean(diag(H));
 mxH= max(diag(H));
 for i = 1:Nblock
@@ -159,18 +169,27 @@ for i = 1:Nblock
         % TN modification: Original HC4 uses a delta of
         %  min(4,hii/mH))
         % here I ensure delta never falls below mH/10
-        delta = max(min(4,hii/mH),mH/10);
+        % %      delta = max(min(4,hii/mH),mH/10);
+        delta = min(4,hii/mH);
         Ra{i} = diag((1-hii).^(-delta/2));
       case 'HC4m'
+        % Seems inferior to both HC4 and HC5
         delta = min(1,hii/mH)+min(1.5,hii/mH);
         Ra{i} = diag((1-hii).^(-delta/2));
       case 'HC5'
         % TN modification: Original HC5 uses a delta of
         %   min(max(4,0.7*mxH/mH),hii/mH)
         % but on horribly skewed data that causes crazy large powers
-        % Here, I put a cap of 10, which seems reasonable, and
-        % bound below by mH/10
-        delta = max(min(max(4,min(10,0.7*mxH/mH)),hii/mH),mH/10);
+        % Here, I put a cap of 10, which seems reasonable
+        delta = min(10,min(max(4,0.7*mxH/mH),hii/mH);
+        Ra{i} = diag((1-hii).^(-delta/2/2));
+      case 'HC5m'
+        % TN modification: as HC5
+        delta = min(1,hii/mH)+min(max(4,min(10,0.7*mxH/mH)),hii/mH);
+        Ra{i} = diag((1-hii).^(-delta/2));
+      case 'HC6'
+        % TN modification: as HC5
+        delta = min(10,min(hii/mH,sqrt(mxH/mH/2)));
         Ra{i} = diag((1-hii).^(-delta/2));
     end
 end
