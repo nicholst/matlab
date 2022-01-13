@@ -98,7 +98,7 @@ if CalcVg
     res = Y-X*pX*Y;
     for i = 1:Nblock
         I    = bI{i};
-        % 'C2' adjustment
+        % 'C2' adjustment, a `block-wise 1/sqrt(1-hii)'
         Ra   = sqrtm(inv(eye(bN(i))-X(bI{i},:)*pX(:,I)));
         ares = Ra*res(I,:);
         Vg{i} = ares*ares'/Nelm;
@@ -114,13 +114,17 @@ if length(Vg)==0
 else
     XtWX = zeros(P,P);
     XtW  = zeros(P,N);
+    XtWh = zeros(P,N);
     for i = 1:Nblock
         I        = bI{i};
         W{i}     = pinv(Vg{i});
+        Wh{i}    = sqrtm(W{i});
         XtWX     = XtWX + X(I,:)'*W{i}*X(I,:);
         XtW(:,I) = X(I,:)'*W{i};
+        XtWh(:,I)= X(I,:)'*Wh{i};
     end
-    BreadXW = pinv(XtWX)*XtW;
+    BreadXW  = pinv(XtWX)*XtW;
+    BreadXWh = pinv(XtWX)*XtWh;
 end
 
 %
@@ -133,7 +137,7 @@ end
 % less than 0 (normally, 0 <= hii <= 1).
 %
 Ra = cell(1,Nblock);
-H  = X*BreadXW;
+H  = XtWh'*BreadXWh;
 mH = mean(diag(H));
 mxH= max(diag(H));
 for i = 1:Nblock
@@ -172,7 +176,7 @@ for i = 1:Nblock
 end
 
 %
-% OLS fit
+% OLS (or working-covariance modified) fit
 %
 
 bh   = BreadXW*Y;
