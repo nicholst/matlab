@@ -85,11 +85,7 @@ else
     end
 end
 if nargin < 6
-    RA = 'C2';
-else
-    if ~any(strcmp(lower(RA),lower({'HC0','HC1','HC2','C2','HC3','HC4','HC4m','HC5'})))
-        error('Unknown residual adjustment option')
-    end
+    RA = 'HC2';
 end
 
 %
@@ -104,7 +100,7 @@ if CalcVg
         % 'C2' adjustment, a `block-wise 1/sqrt(1-hii)'
         Ra   = sqrtm(inv(eye(bN(i))-X(bI{i},:)*pX(:,I)));
         % 'HC2' adjustment
-        Ra   = 1./sqrt(1-diag(H(I,I)));
+        Ra   = diag(1./sqrt(1-diag(H(I,I))));
         ares = Ra*res(I,:);
         Vg{i} = ares*ares'/Nelm;
     end
@@ -181,7 +177,7 @@ for i = 1:Nblock
         %   min(max(4,0.7*mxH/mH),hii/mH)
         % but on horribly skewed data that causes crazy large powers
         % Here, I put a cap of 10, which seems reasonable
-        delta = min(10,min(max(4,0.7*mxH/mH),hii/mH);
+        delta = min(10,min(max(4,0.7*mxH/mH),hii/mH));
         Ra{i} = diag((1-hii).^(-delta/2/2));
       case 'HC5m'
         % TN modification: as HC5
@@ -191,6 +187,8 @@ for i = 1:Nblock
         % TN modification: as HC5
         delta = min(10,min(hii/mH,sqrt(mxH/mH/2)));
         Ra{i} = diag((1-hii).^(-delta/2));
+      otherwise
+        error('Unknown residual adjustment option')
     end
 end
 
