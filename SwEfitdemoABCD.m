@@ -32,22 +32,16 @@ nWB       = 100;    % Number of Wild Bootstrap iterations - Start at 100; try 10
 %           6278 1184   30    1  
 %  
 
-% AMD: changed to handle design matrix in original form  
-try
-  X = load('FamSubVisX.dat');
-  Nms = readcell('FamSubVisX_names.txt', 'Delimiter',"");
-catch
-  tbl = readtable('ABCD_rel3.0_long_desmat_PCs_SES_interview_age.txt');
-  reordervec = [3 1 2];
-  X = NaN(size(tbl));
-  X(:,4:end) = table2array(tbl(:,4:end));
-  for j = 1:length(reordervec)
-    tmp = tbl(:,reordervec(j));
-    [dummy IA IC] = unique(tmp,'stable');
-    X(:,j) = IC;
-  end
-  Nms = tbl.Properties.VariableNames;
+tbl = readtable('ABCD_rel3.0_long_desmat_PCs_SES_interview_age.txt');
+reordervec = [3 1 2];
+X = NaN(size(tbl));
+X(:,4:end) = table2array(tbl(:,4:end));
+for j = 1:length(reordervec)
+  tmp = tbl(:,reordervec(j));
+  [dummy IA IC] = unique(tmp,'stable');
+  X(:,j) = IC;
 end
+Nms = tbl.Properties.VariableNames;
 
 Fam   = X(:,1);
 Sub   = X(:,2);
@@ -115,22 +109,16 @@ N      = size(X,1);
 P      = size(X,2);
 Nblock = length(unique(Fam));
 
-% AMD: generate synthesized data with F and S random effects
-if 0
-  % Simulate repeated measures data, N x Nelm, with intrablock correlation rho
-  Y = sqrt(1-rho)*randn(N,Nelm) + ...
-      sqrt(rho)  *repelem(randn(Nblock,Nelm),Nperblock,1);
-else
-  sig2vec = [0.5 0.5]*0.95; % Half F and S
-  Y = sqrt(1-sum(sig2vec))*randn(N,Nelm);
-  for fi = 1:max(Fam)
-    ivec = find(Fam==fi);
-    Y(ivec,:) = Y(ivec,:) + sqrt(sig2vec(1))*randn(1,Nelm);
-  end
-  for si = 1:max(Sub)
-    ivec = find(Sub==si);
-    Y(ivec,:) = Y(ivec,:) + sqrt(sig2vec(2))*randn(1,Nelm);
-  end
+% Simulate data
+sig2vec = [0.5 0.5]*0.95; % Half F and S, 5% E
+Y = sqrt(1-sum(sig2vec))*randn(N,Nelm);
+for fi = 1:max(Fam)
+  ivec = find(Fam==fi);
+  Y(ivec,:) = Y(ivec,:) + sqrt(sig2vec(1))*randn(1,Nelm);
+end
+for si = 1:max(Sub)
+  ivec = find(Sub==si);
+  Y(ivec,:) = Y(ivec,:) + sqrt(sig2vec(2))*randn(1,Nelm);
 end
 
 % OLS fit
