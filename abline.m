@@ -37,22 +37,25 @@ g = [];
 if isstr(a) & (a=='h')
 
   for i=1:length(b)
-    g=[g;line(XX,[b(i) b(i)],'LineStyle',':',varargin{:})];
+    g=[g;line(XX,[b(i) b(i)],'LineStyle',':','color',0.5*[1 1 1],varargin{:})];
   end
 
 elseif isstr(a) & (a=='v')
 
   for i=1:length(b)
-    g=[g;line([b(i) b(i)],YY,'LineStyle',':',varargin{:})];
+    g=[g;line([b(i) b(i)],YY,'LineStyle',':','color',0.5*[1 1 1],varargin{:})];
   end
 
 else
 
-  g=line(XX,a+b*XX,'LineStyle',':',varargin{:});
+  g=line(XX,a+b*XX,'LineStyle',':','color',0.5*[1 1 1],varargin{:});
 
 end
 
 uistack(h_exist,'top');
+
+set(gca,'Xlim',XX);
+set(gca,'Ylim',YY);
 
 if (nargout>0)
   h=g;
