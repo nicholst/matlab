@@ -14,6 +14,8 @@ function ppplot(Pval,varargin)
 if length(varargin)>0
     M=varargin{1};
     varargin(1)=[];
+else
+    M=[];
 end
 
 % Check for NaNs
